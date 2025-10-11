@@ -1,0 +1,17 @@
+gradio>=4.0.0
+langchain
+langchain-community
+langgraph
+dashscope
+Pillow
+python-docx
+# Optional dependencies for document conversion
+# aspose-words  # Commercial license required
+# docx2python
+# matplotlib
+python-docx>=0.8.11
+
+# Flask API dependencies
+flask>=2.3.0
+flask-cors>=4.0.0
+werkzeug>=2.3.0

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大学AI教案生成系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-navbar">
+        <div class="navbar-left">
+            <div class="logo">
+                <div class="logo-icon">🎓</div>
+                <div class="logo-text">AI教案助手</div>
+            </div>
+        </div>
+        
+        <div class="navbar-right">
+            <button class="nav-btn" onclick="exportLessons()" title="导出教案">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+            <button class="nav-btn" onclick="resetSession()" title="重置会话">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 12A9 9 0 1 0 21 12A9 9 0 0 0 3 12Z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M9 12L12 9L15 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 9V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- 主聊天区域 -->
+    <div class="main-chat-area">
+        <!-- 欢迎界面 -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-content">
+                <div class="welcome-icon">🎓</div>
+                <h1>大学AI教案生成系统</h1>
+                <p>基于通义千问的智能教案生成助手</p>
+                
+                <div class="quick-start">
+                    <div class="start-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>拖入模板</h3>
+                            <p>将教案模板拖入页面任意位置</p>
+                        </div>
+                    </div>
+                    <div class="start-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>输入需求</h3>
+                            <p>描述您的课程信息和要求</p>
+                        </div>
+                    </div>
+                    <div class="start-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>自动生成</h3>
+                            <p>系统自动生成完整教案</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 聊天界面 -->
+        <div class="chat-container" id="chatContainer" style="display: none;">
+            <div class="chat-messages" id="chatMessages">
+                <!-- 消息将在这里动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部输入区域 -->
+    <div class="bottom-input-area">
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="输入您的需求，例如：请帮我生成数据结构课程的教案..."
+                    rows="1"
+                ></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="input-footer">
+                <div class="file-upload-area" id="fileUploadArea">
+                    <input type="file" id="fileInput" accept=".doc,.docx,.jpg,.jpeg,.png,.pdf" style="display: none;">
+                    <button class="file-btn" onclick="document.getElementById('fileInput').click()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        上传文件
+                    </button>
+                </div>
+                
+                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span>AI正在思考...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 -->
+    <!-- 模板上传模态框 -->
+    <div class="modal" id="templateModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>上传教案模板</h3>
+                <button class="close-btn" onclick="closeModal('templateModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-area" id="templateUploadArea">
+                    <div class="upload-icon">📄</div>
+                    <p>拖拽文件到此处或点击选择文件</p>
+                    <p class="upload-hint">支持 .doc, .docx, .jpg, .png 格式</p>
+                    <input type="file" id="templateFileInput" accept=".doc,.docx,.jpg,.jpeg,.png,.pdf" style="display: none;">
+                </div>
+                <div class="upload-progress" id="templateProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="templateProgressFill"></div>
+                    </div>
+                    <div class="progress-text" id="templateProgressText">上传中...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('templateModal')">取消</button>
+                <button class="btn btn-primary" onclick="uploadTemplate()" id="uploadTemplateBtn">上传</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 课程设置模态框 -->
+    <div class="modal" id="courseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>课程设置</h3>
+                <button class="close-btn" onclick="closeModal('courseModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="courseSubject">课程名称</label>
+                    <input type="text" id="courseSubject" placeholder="例如：数据结构">
+                </div>
+                <div class="form-group">
+                    <label for="courseType">课程类型</label>
+                    <select id="courseType">
+                        <option value="专业课">专业课</option>
+                        <option value="公共课">公共课</option>
+                        <option value="选修课">选修课</option>
+                        <option value="实践课">实践课</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="totalLessons">总课时</label>
+                        <input type="number" id="totalLessons" value="16" min="1" max="64">
+                    </div>
+                    <div class="form-group">
+                        <label for="credits">学分</label>
+                        <input type="number" id="credits" value="3" min="1" max="10">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="major">专业</label>
+                    <input type="text" id="major" placeholder="例如：计算机科学与技术">
+                </div>
+                <div class="form-group">
+                    <label for="grade">年级</label>
+                    <select id="grade">
+                        <option value="本科">本科</option>
+                        <option value="专科">专科</option>
+                        <option value="研究生">研究生</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="requirements">特殊要求</label>
+                    <textarea id="requirements" placeholder="例如：融入思政元素，注重实践教学"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('courseModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveCourseSettings()">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loadingText">处理中...</div>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .upload-area { 
+            border: 2px dashed #ccc; 
+            padding: 40px; 
+            text-align: center; 
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        .upload-area:hover { border-color: #007bff; }
+        .upload-area.dragover { border-color: #007bff; background-color: #f0f8ff; }
+        button { padding: 10px 20px; margin: 10px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>文件上传测试</h1>
+    
+    <div class="upload-area" id="uploadArea">
+        <p>点击或拖拽文件到这里</p>
+        <input type="file" id="fileInput" style="display: none;" accept=".doc,.docx,.jpg,.jpeg,.png,.pdf">
+    </div>
+    
+    <button onclick="testUpload()">测试上传</button>
+    <button onclick="clearLog()">清除日志</button>
+    
+    <div class="log" id="log"></div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // 设置文件上传
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        // 点击上传
+        uploadArea.addEventListener('click', () => {
+            log('Upload area clicked');
+            fileInput.click();
+        });
+
+        // 文件选择
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                log('File selected: ' + file.name + ' (' + file.size + ' bytes)');
+            }
+        });
+
+        // 拖拽上传
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.add('dragover');
+                log('Drag over');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.remove('dragover');
+                log('Drag leave/drop');
+            }, false);
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            log('Files dropped: ' + files.length);
+            if (files.length > 0) {
+                const file = files[0];
+                log('Dropped file: ' + file.name + ' (' + file.size + ' bytes)');
+                
+                // 设置到文件输入
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+            }
+        }, false);
+
+        function testUpload() {
+            const file = fileInput.files[0];
+            if (!file) {
+                log('No file selected');
+                return;
+            }
+            
+            log('Testing upload for: ' + file.name);
+            
+            // 模拟上传
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            fetch('/api/upload-template', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                log('Upload response: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                log('Upload error: ' + error.message);
+            });
+        }
+
+        log('File upload test page loaded');
+    </script>
+</body>
+</html>
