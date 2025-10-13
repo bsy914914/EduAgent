@@ -6,7 +6,7 @@ import re
 from typing import Dict, List
 from pathlib import Path
 
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_community.chat_models import ChatTongyi
 
 from config import DEFAULT_TEMPLATE_STRUCTURE
@@ -27,6 +27,11 @@ class UniversityCourseAgent:
         )
         # 教案生成使用快速的模型
         self.llm_lesson = ChatTongyi(
+            dashscope_api_key=api_key,
+            model_name="qwen-turbo"
+        )
+        # 通用对话使用中等模型
+        self.llm_chat = ChatTongyi(
             dashscope_api_key=api_key,
             model_name="qwen-turbo"
         )
@@ -914,3 +919,77 @@ class UniversityCourseAgent:
         
         self.lesson_plans = lesson_plans
         return lesson_plans
+
+    async def chat_with_user(self, user_message: str) -> str:
+        """与用户进行通用对话"""
+        try:
+            # 添加用户消息到对话历史
+            self.conversation_history.append({
+                "role": "user",
+                "content": user_message,
+                "timestamp": self._get_timestamp()
+            })
+            
+            # 构建对话上下文
+            system_prompt = """你是一个智能的大学教育助手，专门帮助教师进行教案设计和教学相关的工作。
+
+你的主要功能包括：
+1. 回答教学相关的问题
+2. 提供教学方法和建议
+3. 帮助设计课程和教案
+4. 解答教育技术问题
+5. 进行日常对话交流
+
+请用友好、专业的语调回答用户的问题。如果用户询问与教案生成相关的问题，可以引导他们使用系统的教案生成功能。
+
+回答要简洁明了，不超过300字。"""
+
+            # 构建消息历史（最近30条）并传入LLM，确保上下文保留
+            recent_history = self.conversation_history[-30:] if len(self.conversation_history) > 30 else self.conversation_history
+
+            lc_messages = [SystemMessage(content=system_prompt)]
+            for msg in recent_history:
+                role = msg.get("role")
+                content = msg.get("content", "")
+                if not content:
+                    continue
+                if role == "user":
+                    lc_messages.append(HumanMessage(content=content))
+                elif role == "assistant":
+                    lc_messages.append(AIMessage(content=content))
+
+            # 调用LLM（携带上下文消息）
+            response = await self.llm_chat.ainvoke(lc_messages)
+            
+            # 提取回复内容
+            assistant_reply = response.content.strip()
+            
+            # 添加助手回复到对话历史
+            self.conversation_history.append({
+                "role": "assistant", 
+                "content": assistant_reply,
+                "timestamp": self._get_timestamp()
+            })
+            
+            # 保持对话历史在合理长度内（最多50条）
+            if len(self.conversation_history) > 50:
+                self.conversation_history = self.conversation_history[-50:]
+            
+            return assistant_reply
+            
+        except Exception as e:
+            print(f"对话处理错误: {e}")
+            return f"抱歉，处理您的消息时出现了错误：{str(e)}"
+
+    def _get_timestamp(self) -> str:
+        """获取当前时间戳"""
+        import datetime
+        return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def get_conversation_history(self) -> List[Dict]:
+        """获取对话历史"""
+        return self.conversation_history.copy()
+
+    def clear_conversation_history(self):
+        """清空对话历史"""
+        self.conversation_history = []

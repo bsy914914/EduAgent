@@ -108,13 +108,13 @@ class TemplateEditor {
     loadDefaultTemplate() {
         const defaultTemplate = `<h1>教案模板</h1>
 
-<p><strong>课程名称：</strong>{{course_name}}</p>
-<p><strong>授课教师：</strong>{{teacher_name}}</p>
-<p><strong>授课班级：</strong>{{class_name}}</p>
-<p><strong>课次：</strong>第 {{lesson_number}} 次课</p>
-<p><strong>课题：</strong>{{lesson_title}}</p>
-<p><strong>学时：</strong>{{teaching_hours}}</p>
-<p><strong>授课章节：</strong>{{chapter_section}}</p>
+<p>课程名称：{{course_name}}</p>
+<p>授课教师：{{teacher_name}}</p>
+<p>授课班级：{{class_name}}</p>
+<p>课次：第 {{lesson_number}} 次课</p>
+<p>课题：{{lesson_title}}</p>
+<p>学时：{{teaching_hours}}</p>
+<p>授课章节：{{chapter_section}}</p>
 
 <h2>一、教学目标</h2>
 
@@ -134,54 +134,54 @@ class TemplateEditor {
 
 <h3>教学重点</h3>
 <p>{{teaching_focus}}</p>
-<p><strong>解决措施：</strong>{{focus_solutions}}</p>
+<p>解决措施：{{focus_solutions}}</p>
 
 <h3>教学难点</h3>
 <p>{{teaching_difficulty}}</p>
-<p><strong>解决措施：</strong>{{difficulty_solutions}}</p>
+<p>解决措施：{{difficulty_solutions}}</p>
 
 <h2>三、教学方法与资源</h2>
 
-<p><strong>教法：</strong>{{teaching_methods}}</p>
-<p><strong>学法：</strong>{{learning_methods}}</p>
-<p><strong>教学资源：</strong>{{teaching_resources}}</p>
+<p>教法：{{teaching_methods}}</p>
+<p>学法：{{learning_methods}}</p>
+<p>教学资源：{{teaching_resources}}</p>
 
 <h2>四、教学过程</h2>
 
 <h3>（一）课前预习</h3>
-<p><strong>教学内容：</strong>{{preview_content}}</p>
-<p><strong>教师活动：</strong>{{preview_teacher}}</p>
-<p><strong>学生活动：</strong>{{preview_student}}</p>
-<p><strong>设计意图：</strong>{{preview_intention}}</p>
+<p>教学内容：{{preview_content}}</p>
+<p>教师活动：{{preview_teacher}}</p>
+<p>学生活动：{{preview_student}}</p>
+<p>设计意图：{{preview_intention}}</p>
 
 <h3>（二）新课导入</h3>
-<p><strong>教学内容：</strong>{{introduction_content}}</p>
-<p><strong>教师活动：</strong>{{introduction_teacher}}</p>
-<p><strong>学生活动：</strong>{{introduction_student}}</p>
-<p><strong>设计意图：</strong>{{introduction_intention}}</p>
+<p>教学内容：{{introduction_content}}</p>
+<p>教师活动：{{introduction_teacher}}</p>
+<p>学生活动：{{introduction_student}}</p>
+<p>设计意图：{{introduction_intention}}</p>
 
 <h3>（三）新课讲授</h3>
-<p><strong>教学内容：</strong>{{teaching_content}}</p>
-<p><strong>教师活动：</strong>{{teaching_teacher}}</p>
-<p><strong>学生活动：</strong>{{teaching_student}}</p>
-<p><strong>设计意图：</strong>{{teaching_intention}}</p>
+<p>教学内容：{{teaching_content}}</p>
+<p>教师活动：{{teaching_teacher}}</p>
+<p>学生活动：{{teaching_student}}</p>
+<p>设计意图：{{teaching_intention}}</p>
 
 <h3>（四）实践环节</h3>
-<p><strong>教学内容：</strong>{{practice_content}}</p>
-<p><strong>教师活动：</strong>{{practice_teacher}}</p>
-<p><strong>学生活动：</strong>{{practice_student}}</p>
-<p><strong>设计意图：</strong>{{practice_intention}}</p>
+<p>教学内容：{{practice_content}}</p>
+<p>教师活动：{{practice_teacher}}</p>
+<p>学生活动：{{practice_student}}</p>
+<p>设计意图：{{practice_intention}}</p>
 
 <h3>（五）课后作业</h3>
-<p><strong>教学内容：</strong>{{homework_content}}</p>
-<p><strong>教师活动：</strong>{{homework_teacher}}</p>
-<p><strong>学生活动：</strong>{{homework_student}}</p>
-<p><strong>设计意图：</strong>{{homework_intention}}</p>
+<p>教学内容：{{homework_content}}</p>
+<p>教师活动：{{homework_teacher}}</p>
+<p>学生活动：{{homework_student}}</p>
+<p>设计意图：{{homework_intention}}</p>
 
 <h2>五、教学反思</h2>
 
-<p><strong>目标效果：</strong>{{reflection_effects}}</p>
-<p><strong>反思改进：</strong>{{reflection_improvements}}</p>`;
+<p>目标效果：{{reflection_effects}}</p>
+<p>反思改进：{{reflection_improvements}}</p>`;
 
         this.quill.root.innerHTML = defaultTemplate;
         this.updatePreview();

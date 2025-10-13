@@ -16,7 +16,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY', '')
 
 # 如果需要在本地测试，可以取消下面的注释并填入您的API Key
-DASHSCOPE_API_KEY = ""
+# DASHSCOPE_API_KEY = ""
 
 # Flask配置
 FLASK_HOST = '0.0.0.0'

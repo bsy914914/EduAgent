@@ -200,7 +200,7 @@
 
                 <!-- 继续添加其他教学环节... -->
                 <div class="tag-info">
-                    <p>💡 <strong>使用提示</strong></p>
+                    <p>💡 使用提示</p>
                     <ul>
                         <li>点击标签即可插入到编辑器光标位置</li>
                         <li>标签格式: <code>{{标签名}}</code></li>
@@ -216,7 +216,7 @@
             <div class="editor-header">
                 <div class="template-info">
                     <input type="text" id="templateName" class="template-name-input" placeholder="模板名称（例如：教案模板_2024）" value="我的教案模板">
-                    <span class="tag-count">已使用标签: <strong id="usedTagCount">0</strong></span>
+                    <span class="tag-count">已使用标签: <span id="usedTagCount">0</span></span>
                 </div>
                 <div class="editor-toolbar">
                     <button onclick="templateEditor.insertTable()" title="插入表格">
@@ -236,7 +236,7 @@
             </div>
 
             <div class="editor-footer">
-                <span class="word-count">字数: <strong id="wordCount">0</strong></span>
+                <span class="word-count">字数: <span id="wordCount">0</span></span>
                 <span class="status-indicator" id="statusIndicator">● 未保存</span>
             </div>
         </div>

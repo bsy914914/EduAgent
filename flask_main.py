@@ -127,7 +127,7 @@ def print_api_info(host, port):
 📚 API文档: http://{host}:{port}/api/health
 
 📋 可用接口:
-   POST /api/initialize              - 初始化代理
+   POST /api/initialize              - 初始化智能体
    POST /api/upload-template         - 上传模板文件
    POST /api/generate-outline        - 生成课程大纲
    POST /api/generate-lesson         - 生成单个教案
