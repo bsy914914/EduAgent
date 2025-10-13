@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模板编辑器 - 插入智能标签</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20251013b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/template_editor_v2.css') }}?v=20251013b">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-navbar">
+        <div class="navbar-left">
+            <a href="/" class="back-btn" title="返回主页">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+            <div class="logo">
+                <div class="logo-icon">🏷️</div>
+                <div class="logo-text">模板标签编辑器</div>
+            </div>
+        </div>
+        
+        <div class="navbar-right">
+            <button class="nav-btn success" id="downloadBtn" onclick="app.downloadTemplate()" title="下载编辑后的模板" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>下载模板</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="editor-container-v2">
+        
+
+        <!-- 步骤指示器 -->
+        <div class="steps-indicator">
+            <div class="step active" id="step1">
+                <div class="step-number">1</div>
+                <div class="step-label">上传模板</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <div class="step-label">定位标签位置</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <div class="step-label">插入标签并下载</div>
+            </div>
+        </div>
+
+        <!-- 上传区域 -->
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-box" id="uploadBox">
+                <h2>📄 上传您的Word教案模板</h2>
+                <p>支持 .docx 格式，系统将识别文档结构并允许您插入智能标签</p>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-right: 8px;">
+                        <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    选择文件
+                </button>
+                <input type="file" id="fileInput" accept=".docx" style="display: none;" onchange="app.handleFileUpload(this.files[0])">
+                <div class="upload-tips">
+                    <p>💡 <strong>提示</strong></p>
+                    <ul>
+                        <li>上传现有的教案Word模板</li>
+                        <li>系统会分析文档的段落和表格结构</li>
+                        <li>您可以选择在任意位置插入标签</li>
+                        <li>标签格式为 <code>{{标签名}}</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 编辑区域 -->
+        <div class="edit-section" id="editSection" style="display: none;">
+            <!-- 顶部信息栏 -->
+            <div class="info-bar">
+                <div id="fileInfo" class="file-info-display"></div>
+                <div class="tag-counter" id="tagCounter">已插入 0 个标签</div>
+            </div>
+
+            <!-- Word文档全屏预览 -->
+            <div class="document-viewer-fullscreen" id="documentViewer">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 标签选择弹窗 -->
+        <div class="tag-selector-modal" id="tagSelectorModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🏷️ 选择要插入的标签</h3>
+                    <div class="modal-location" id="modalLocation"></div>
+                    <button class="modal-close" onclick="app.closeTagSelector()">×</button>
+                </div>
+                <div class="modal-search">
+                    <input type="text" id="tagSearchModal" placeholder="🔍 搜索标签..." oninput="app.searchTagsInModal(this.value)">
+                </div>
+                <div class="modal-body" id="tagsContent">
+                    <!-- 标签将通过JS动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mammoth.js for Word rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <script src="{{ url_for('static', filename='js/template_editor_v2.js') }}"></script>
+</body>
+</html>
+

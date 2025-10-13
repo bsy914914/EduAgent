@@ -34,7 +34,7 @@ Examples:
     parser.add_argument(
         '--port',
         type=int,
-        default=5026,
+        default=5028,
         help='Port to run the server on (default: 5026)'
     )
     

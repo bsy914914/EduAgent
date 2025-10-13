@@ -4,11 +4,166 @@ import datetime
 import tempfile
 import os
 import json
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any, Optional, Union
 
 
 class LessonExporter:
     """Export lesson plans to various document formats"""
+    
+    @staticmethod
+    def smart_export(lesson_plans: List[Union[str, Dict]], 
+                     course_outline: Optional[Dict] = None,
+                     template_mode: str = "text",
+                     template_path: Optional[str] = None,
+                     export_format: str = "word") -> Tuple[Optional[str], bool]:
+        """
+        智能导出：自动选择填充模板或生成新文档
+        
+        Args:
+            lesson_plans: 教案列表（可以是字符串或字典）
+            course_outline: 课程大纲信息
+            template_mode: 模板类型 ("tags" 或 "text")
+            template_path: 原始模板路径
+            export_format: 导出格式 ("word" 或 "txt")
+            
+        Returns:
+            Tuple of (file_path, success)
+        """
+        try:
+            print(f"📤 智能导出开始...")
+            print(f"   - 模板模式: {template_mode}")
+            print(f"   - 教案数量: {len(lesson_plans)}")
+            print(f"   - 导出格式: {export_format}")
+            
+            # 判断是否为标签模式且有模板
+            if template_mode == "tags" and template_path and all(isinstance(lp, dict) for lp in lesson_plans):
+                print(f"✅ 使用标签填充模式")
+                return LessonExporter.export_with_template_filling(
+                    lesson_plans, template_path, export_format
+                )
+            else:
+                print(f"✅ 使用传统生成模式")
+                # 转换为字符串列表（如果是字典，转为文本）
+                text_plans = []
+                for lp in lesson_plans:
+                    if isinstance(lp, dict):
+                        # 将字典转为易读文本
+                        text_plans.append(LessonExporter._dict_to_text(lp))
+                    else:
+                        text_plans.append(str(lp))
+                
+                if export_format == "word":
+                    return LessonExporter.export_to_word(text_plans, course_outline)
+                else:
+                    return LessonExporter.export_to_txt(text_plans, course_outline)
+                    
+        except Exception as e:
+            print(f"❌ 智能导出失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return None, False
+    
+    @staticmethod
+    def export_with_template_filling(lesson_plans: List[Dict], 
+                                     template_path: str,
+                                     export_format: str = "word") -> Tuple[Optional[str], bool]:
+        """
+        使用模板填充方式导出（针对标签模式）
+        
+        Args:
+            lesson_plans: 教案数据字典列表
+            template_path: 模板文件路径
+            export_format: 导出格式
+            
+        Returns:
+            Tuple of (file_path, success)
+        """
+        try:
+            from utils.template_filler import WordTemplateFiller
+            
+            print(f"🏷️  开始使用模板填充导出...")
+            filler = WordTemplateFiller()
+            
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            exports_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'exports')
+            os.makedirs(exports_dir, exist_ok=True)
+            
+            # 如果只有一个教案，直接填充
+            if len(lesson_plans) == 1:
+                filename = f"lesson_plan_{timestamp}.docx"
+                output_path = os.path.join(exports_dir, filename)
+                
+                success = filler.fill_template(
+                    template_path=template_path,
+                    output_path=output_path,
+                    data=lesson_plans[0]
+                )
+                
+                if success:
+                    print(f"✅ 单个教案填充成功: {output_path}")
+                    return output_path, True
+                else:
+                    print(f"❌ 教案填充失败")
+                    return None, False
+            
+            # 多个教案：合并或分别生成
+            else:
+                # 方案1：合并成一个文档（按课次）
+                from docx import Document
+                from docxtpl import DocxTemplate
+                import shutil
+                
+                filename = f"all_lesson_plans_{timestamp}.docx"
+                output_path = os.path.join(exports_dir, filename)
+                
+                # 复制第一个教案作为基础
+                first_output = os.path.join(exports_dir, f"temp_lesson_1.docx")
+                filler.fill_template(template_path, first_output, lesson_plans[0])
+                
+                # 加载第一个文档
+                combined_doc = Document(first_output)
+                
+                # 为后续教案添加分页和内容
+                for i, lesson_data in enumerate(lesson_plans[1:], 2):
+                    # 生成单个教案
+                    temp_output = os.path.join(exports_dir, f"temp_lesson_{i}.docx")
+                    filler.fill_template(template_path, temp_output, lesson_data)
+                    
+                    # 添加分页
+                    combined_doc.add_page_break()
+                    
+                    # 读取新教案内容并添加
+                    lesson_doc = Document(temp_output)
+                    for element in lesson_doc.element.body:
+                        combined_doc.element.body.append(element)
+                    
+                    # 删除临时文件
+                    os.remove(temp_output)
+                
+                # 保存合并文档
+                combined_doc.save(output_path)
+                
+                # 删除第一个临时文件
+                os.remove(first_output)
+                
+                print(f"✅ {len(lesson_plans)} 个教案合并填充成功: {output_path}")
+                return output_path, True
+                
+        except Exception as e:
+            print(f"❌ 模板填充导出失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return None, False
+    
+    @staticmethod
+    def _dict_to_text(data: Dict) -> str:
+        """将字典转换为易读文本"""
+        lines = []
+        for key, value in data.items():
+            # 格式化键名
+            formatted_key = key.replace('_', ' ').title()
+            lines.append(f"**{formatted_key}**: {value}\n")
+        return "\n".join(lines)
     
     @staticmethod
     def export_to_word(lesson_plans: List[str], course_outline: Optional[Dict] = None) -> Tuple[Optional[str], bool]:

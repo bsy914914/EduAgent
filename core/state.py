@@ -29,10 +29,15 @@ class SessionState:
         self.course_info = {}
         self.requirements = ""
         self.outline_generated = False
+        self.course_outline = None  # 课程大纲
         self.lesson_plans = []
         self.current_step = "start"
         self.api_key = ""
         self.template_file_path = None
+        # 模板类型标记
+        self.has_xml_tags = False  # 是否包含XML标签
+        self.detected_tags = []     # 检测到的标签列表
+        self.template_mode = "text" # "text" 或 "tags"
     
     def reset(self):
         """Reset session state"""

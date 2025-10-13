@@ -39,6 +39,10 @@ class UniversityCourseAgent:
         self.course_outline = None
         self.lesson_plans = []
         self.course_requirements = ""
+        # 模板类型相关
+        self.template_mode = "text"  # "text" 或 "tags"
+        self.template_file_path = None
+        self.detected_tags = []
 
     def extract_template_keywords(self, file_path: str) -> Dict:
         """Extract template keywords using VLM (supports DOC/DOCX conversion)"""
@@ -48,7 +52,43 @@ class UniversityCourseAgent:
             image_paths = []
             
             if file_extension in ['.doc', '.docx']:
-                print(f"Detected Word document, converting to image...")
+                print(f"🔍 检测到Word文档，开始检测模板类型...")
+                
+                # ========== 新增：检测XML标签 ==========
+                try:
+                    from utils.template_filler import WordTemplateFiller
+                    filler = WordTemplateFiller()
+                    tag_info = filler.check_template_tags(file_path)
+                    
+                    if tag_info.get('success') and tag_info.get('has_tags'):
+                        # 发现XML标签
+                        self.template_mode = "tags"
+                        self.template_file_path = file_path
+                        self.detected_tags = tag_info.get('recognized_tags', [])
+                        
+                        print(f"✅ 检测到智能标签模板！")
+                        print(f"   - 识别的标签: {len(self.detected_tags)} 个")
+                        print(f"   - 未识别的标签: {len(tag_info.get('unrecognized_tags', []))} 个")
+                        
+                        if tag_info.get('unrecognized_tags'):
+                            print(f"   ⚠️  未识别标签: {tag_info.get('unrecognized_tags')[:5]}")
+                        
+                        # 返回标签信息作为模板结构
+                        return {
+                            'template_type': 'xml_tags',
+                            'mode': 'tags',
+                            'tags': self.detected_tags,
+                            'tag_info': tag_info
+                        }
+                    else:
+                        print(f"📝 未检测到XML标签，使用传统视觉识别方式")
+                        self.template_mode = "text"
+                except Exception as tag_error:
+                    print(f"⚠️  标签检测失败，使用传统方式: {tag_error}")
+                    self.template_mode = "text"
+                
+                # ========== 传统视觉识别方式 ==========
+                print(f"🖼️  转换为图片进行视觉分析...")
                 image_paths = TemplateConverter.convert_to_images(file_path)
                 
                 # 修改点1: 正确保存图片路径列表
@@ -62,18 +102,23 @@ class UniversityCourseAgent:
                     
             elif file_extension in ['.jpg', '.jpeg', '.png', '.bmp', '.gif']:
                 image_paths = [file_path]
+                self.template_mode = "text"
             else:
                 print(f"Unsupported file format: {file_extension}")
+                self.template_mode = "text"
                 return DEFAULT_TEMPLATE_STRUCTURE
             
             # 修改点2: 分析所有页面图片
             if image_paths:
-                return self._analyze_all_template_images(image_paths)
+                result = self._analyze_all_template_images(image_paths)
+                result['mode'] = 'text'  # 标记为文本模式
+                return result
             else:
                 return DEFAULT_TEMPLATE_STRUCTURE
                 
         except Exception as e:
             print(f"Template parsing error: {e}")
+            self.template_mode = "text"
             return DEFAULT_TEMPLATE_STRUCTURE
     
     def _analyze_all_template_images(self, image_paths: List[str]) -> Dict:
@@ -479,6 +524,114 @@ class UniversityCourseAgent:
             return {"error": f"大纲生成失败: {str(e)}"}
 
 
+    async def generate_lesson_plan_for_tags(self, lesson_info: Dict, detected_tags: List[str],
+                                            additional_requirements: str = "") -> Dict:
+        """为标签模式生成JSON结构化数据
+        
+        Args:
+            lesson_info: 课程信息
+            detected_tags: 检测到的标签列表
+            additional_requirements: 附加要求
+            
+        Returns:
+            Dict: 结构化的教案数据,键名与标签对应
+        """
+        print(f"📊 使用标签模式生成教案（检测到 {len(detected_tags)} 个标签）")
+        
+        prompt = f"""
+请根据以下信息生成一份完整的大学教案内容，以JSON格式返回。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【一、课程基本信息】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+课程名称：{self.course_outline.get('course_info', {}).get('course_name', '')}
+课程性质：{self.course_outline.get('course_info', {}).get('course_type', '')}
+授课对象：{self.course_outline.get('course_info', {}).get('target_students', '')}
+
+【本次课信息】
+章节标题：{lesson_info.get('title', '')}
+课程类型：{lesson_info.get('type', '')}
+学时：{lesson_info.get('hours', 2)}学时
+知识点：{', '.join(lesson_info.get('knowledge_points', []))}
+教学重点：{', '.join(lesson_info.get('key_points', []))}
+教学难点：{', '.join(lesson_info.get('difficult_points', []))}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【二、需要填充的标签列表】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{json.dumps(detected_tags, ensure_ascii=False)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【三、附加要求】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{additional_requirements if additional_requirements else "无特殊要求"}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【四、输出要求】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+请为上述标签列表中的每个标签生成对应的内容，返回JSON格式：
+
+{{
+    "course_name": "课程名称",
+    "lesson_title": "本次课标题",
+    "chapter_section": "授课章节",
+    "teaching_hours": "2",
+    "lesson_number": "1",
+    
+    "ideological_goals": "思政育人目标的详细内容...",
+    "knowledge_goals": "知识目标的详细内容...",
+    "ability_goals": "能力目标的详细内容...",
+    "ideological_elements": "思政元素的详细内容...",
+    
+    "teaching_focus": "教学重点的详细内容...",
+    "focus_solutions": "教学重点解决措施的详细内容...",
+    "teaching_difficulty": "教学难点的详细内容...",
+    "difficulty_solutions": "教学难点解决措施的详细内容...",
+    
+    "teaching_methods": "教法的详细内容...",
+    "learning_methods": "学法的详细内容...",
+    "teaching_resources": "教学资源的详细内容...",
+    
+    "preview_content": "课前预习-教学内容...",
+    "preview_teacher": "课前预习-教师活动...",
+    "preview_student": "课前预习-学生活动...",
+    "preview_intention": "课前预习-设计意图...",
+    
+    ... （为所有检测到的标签生成内容）
+}}
+
+**重要规则：**
+1. **只返回JSON，不要任何其他文字**
+2. **只为检测到的标签生成内容**（不要生成未检测到的标签）
+3. 每个标签的内容要详细、具体、可操作
+4. 内容要符合大学教学规范
+5. 教学过程要分阶段、有时间安排
+6. 思政元素要自然融入，不生硬
+7. 不包含具体学校名称和教师姓名
+
+现在请生成JSON：
+"""
+        
+        response = await self.llm_lesson.ainvoke([HumanMessage(content=prompt)])
+        
+        try:
+            from utils.json_parser import extract_json_from_response
+            lesson_data = extract_json_from_response(response.content)
+            
+            if not lesson_data:
+                print(f"⚠️  JSON提取失败，尝试解析原始内容...")
+                print(f"原始响应：{response.content[:500]}")
+                return {"error": "教案生成失败，模型返回格式不正确"}
+            
+            print(f"✅ 成功生成 {len(lesson_data)} 个字段的结构化数据")
+            return lesson_data
+            
+        except Exception as e:
+            print(f"❌ 教案生成错误: {e}")
+            print(f"响应内容: {response.content[:500]}")
+            return {"error": f"教案生成失败: {str(e)}"}
+    
     async def generate_university_lesson_plan(self, lesson_info: Dict, template_structure: Dict, 
                                         additional_requirements: str = "") -> str:
         """Generate university lesson plan with dynamic template adaptation - 动态适配版"""
@@ -696,8 +849,14 @@ class UniversityCourseAgent:
         return response.content
 
     async def generate_all_lesson_plans(self, additional_requirements: str = "", 
-                                  progress_callback=None) -> List[str]:
-        """批量生成所有教案，支持实时预览"""
+                                  progress_callback=None) -> List:
+        """批量生成所有教案，支持实时预览
+        
+        Returns:
+            List: 根据模板类型返回不同格式
+                  - tags模式: 返回Dict列表（每个教案是字典）
+                  - text模式: 返回str列表（每个教案是Markdown文本）
+        """
         if not self.course_outline or not self.template_keywords:
             return ["请先上传模板并生成课程大纲"]
         
@@ -705,21 +864,44 @@ class UniversityCourseAgent:
         lessons = self.course_outline.get('lessons', [])
         total_lessons = len(lessons)
         
+        # 判断使用哪种生成模式
+        is_tags_mode = (self.template_mode == "tags" and self.detected_tags)
+        
+        if is_tags_mode:
+            print(f"🏷️  使用标签模式批量生成 {total_lessons} 个教案")
+        else:
+            print(f"📝 使用文本模式批量生成 {total_lessons} 个教案")
+        
         for i, lesson in enumerate(lessons):
             # 进度回调
             if progress_callback:
                 progress_callback(i + 1, total_lessons, 
                     f"正在生成第 {i+1}/{total_lessons} 次课教案: {lesson.get('title', '')}")
             
-            # 生成单个教案
-            lesson_plan = await self.generate_university_lesson_plan(
-                lesson, self.template_keywords, additional_requirements
-            )
+            # ========== 根据模板类型选择生成方法 ==========
+            if is_tags_mode:
+                # 标签模式：生成结构化JSON数据
+                lesson_plan = await self.generate_lesson_plan_for_tags(
+                    lesson, self.detected_tags, additional_requirements
+                )
+            else:
+                # 文本模式：生成Markdown文本
+                lesson_plan = await self.generate_university_lesson_plan(
+                    lesson, self.template_keywords, additional_requirements
+                )
+            
             lesson_plans.append(lesson_plan)
             
             # 每生成一份教案后立即回调显示预览
             if progress_callback:
-                preview = f"\n\n---\n\n## 第 {i+1} 次课教案预览\n\n{lesson_plan[:500]}...\n\n"
+                if is_tags_mode:
+                    # JSON数据预览
+                    preview = f"\n\n---\n\n## 第 {i+1} 次课教案预览（结构化数据）\n\n"
+                    preview += f"生成字段: {list(lesson_plan.keys())[:10]}\n"
+                    preview += f"总字段数: {len(lesson_plan)}\n"
+                else:
+                    # 文本预览
+                    preview = f"\n\n---\n\n## 第 {i+1} 次课教案预览\n\n{str(lesson_plan)[:500]}...\n\n"
                 progress_callback(i + 1, total_lessons, preview)
         
         self.lesson_plans = lesson_plans

@@ -1,4 +1,3 @@
-gradio>=4.0.0
 langchain
 langchain-community
 langgraph
@@ -10,6 +9,8 @@ python-docx
 # docx2python
 # matplotlib
 python-docx>=0.8.11
+docxtpl>=0.16.7  # Word模板引擎（高级功能）
+jinja2>=3.0.0    # 模板语法支持
 
 # Flask API dependencies
 flask>=2.3.0

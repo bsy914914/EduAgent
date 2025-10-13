@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模板编辑器 - AI教案生成系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/template_editor.css') }}">
+    <!-- Quill 富文本编辑器 -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-navbar">
+        <div class="navbar-left">
+            <a href="/" class="back-btn" title="返回主页">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+            <div class="logo">
+                <div class="logo-icon">📝</div>
+                <div class="logo-text">模板编辑器</div>
+            </div>
+        </div>
+        
+        <div class="navbar-right">
+            <button class="nav-btn" onclick="templateEditor.importTemplate()" title="导入模板">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="17,8 12,3 7,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>导入</span>
+            </button>
+            <button class="nav-btn primary" onclick="templateEditor.saveTemplate()" title="保存模板">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="7,3 7,8 15,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>保存</span>
+            </button>
+            <button class="nav-btn success" onclick="templateEditor.downloadTemplate()" title="下载为Word">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>下载</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="editor-container">
+        <!-- 左侧：标签面板 -->
+        <div class="tags-panel">
+            <div class="panel-header">
+                <h3>📋 可用标签</h3>
+                <div class="search-box">
+                    <input type="text" id="tagSearch" placeholder="搜索标签..." onkeyup="templateEditor.searchTags(this.value)">
+                </div>
+            </div>
+            
+            <div class="panel-content" id="tagsContent">
+                <div class="tag-category">
+                    <div class="category-header" onclick="toggleCategory(this)">
+                        <span class="category-icon">▼</span>
+                        <span class="category-title">📌 基本信息 (7)</span>
+                    </div>
+                    <div class="category-content">
+                        <div class="tag-item" onclick="templateEditor.insertTag('course_name')" title="课程名称">
+                            <span class="tag-code">{{course_name}}</span>
+                            <span class="tag-desc">课程名称</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('teacher_name')" title="授课教师">
+                            <span class="tag-code">{{teacher_name}}</span>
+                            <span class="tag-desc">授课教师</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('class_name')" title="授课班级">
+                            <span class="tag-code">{{class_name}}</span>
+                            <span class="tag-desc">授课班级</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('lesson_number')" title="课次">
+                            <span class="tag-code">{{lesson_number}}</span>
+                            <span class="tag-desc">课次</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('lesson_title')" title="课题">
+                            <span class="tag-code">{{lesson_title}}</span>
+                            <span class="tag-desc">课题</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('teaching_hours')" title="学时">
+                            <span class="tag-code">{{teaching_hours}}</span>
+                            <span class="tag-desc">学时</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('chapter_section')" title="授课章节">
+                            <span class="tag-code">{{chapter_section}}</span>
+                            <span class="tag-desc">授课章节</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tag-category">
+                    <div class="category-header" onclick="toggleCategory(this)">
+                        <span class="category-icon">▶</span>
+                        <span class="category-title">🎯 教学目标 (4)</span>
+                    </div>
+                    <div class="category-content" style="display: none;">
+                        <div class="tag-item" onclick="templateEditor.insertTag('ideological_goals')" title="思政育人目标">
+                            <span class="tag-code">{{ideological_goals}}</span>
+                            <span class="tag-desc">思政育人目标</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('knowledge_goals')" title="知识目标">
+                            <span class="tag-code">{{knowledge_goals}}</span>
+                            <span class="tag-desc">知识目标</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('ability_goals')" title="能力目标">
+                            <span class="tag-code">{{ability_goals}}</span>
+                            <span class="tag-desc">能力目标</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('ideological_elements')" title="思政元素">
+                            <span class="tag-code">{{ideological_elements}}</span>
+                            <span class="tag-desc">思政元素</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tag-category">
+                    <div class="category-header" onclick="toggleCategory(this)">
+                        <span class="category-icon">▶</span>
+                        <span class="category-title">⚡ 教学重难点 (4)</span>
+                    </div>
+                    <div class="category-content" style="display: none;">
+                        <div class="tag-item" onclick="templateEditor.insertTag('teaching_focus')" title="教学重点">
+                            <span class="tag-code">{{teaching_focus}}</span>
+                            <span class="tag-desc">教学重点</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('focus_solutions')" title="重点解决措施">
+                            <span class="tag-code">{{focus_solutions}}</span>
+                            <span class="tag-desc">重点解决措施</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('teaching_difficulty')" title="教学难点">
+                            <span class="tag-code">{{teaching_difficulty}}</span>
+                            <span class="tag-desc">教学难点</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('difficulty_solutions')" title="难点解决措施">
+                            <span class="tag-code">{{difficulty_solutions}}</span>
+                            <span class="tag-desc">难点解决措施</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tag-category">
+                    <div class="category-header" onclick="toggleCategory(this)">
+                        <span class="category-icon">▶</span>
+                        <span class="category-title">🔧 教学方法 (3)</span>
+                    </div>
+                    <div class="category-content" style="display: none;">
+                        <div class="tag-item" onclick="templateEditor.insertTag('teaching_methods')" title="教法">
+                            <span class="tag-code">{{teaching_methods}}</span>
+                            <span class="tag-desc">教法</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('learning_methods')" title="学法">
+                            <span class="tag-code">{{learning_methods}}</span>
+                            <span class="tag-desc">学法</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('teaching_resources')" title="教学资源">
+                            <span class="tag-code">{{teaching_resources}}</span>
+                            <span class="tag-desc">教学资源</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 教学过程：10个环节 -->
+                <div class="tag-category">
+                    <div class="category-header" onclick="toggleCategory(this)">
+                        <span class="category-icon">▶</span>
+                        <span class="category-title">📚 课前预习 (4)</span>
+                    </div>
+                    <div class="category-content" style="display: none;">
+                        <div class="tag-item" onclick="templateEditor.insertTag('preview_content')">
+                            <span class="tag-code">{{preview_content}}</span>
+                            <span class="tag-desc">教学内容</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('preview_teacher')">
+                            <span class="tag-code">{{preview_teacher}}</span>
+                            <span class="tag-desc">教师活动</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('preview_student')">
+                            <span class="tag-code">{{preview_student}}</span>
+                            <span class="tag-desc">学生活动</span>
+                        </div>
+                        <div class="tag-item" onclick="templateEditor.insertTag('preview_intention')">
+                            <span class="tag-code">{{preview_intention}}</span>
+                            <span class="tag-desc">设计意图</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 继续添加其他教学环节... -->
+                <div class="tag-info">
+                    <p>💡 <strong>使用提示</strong></p>
+                    <ul>
+                        <li>点击标签即可插入到编辑器光标位置</li>
+                        <li>标签格式: <code>{{标签名}}</code></li>
+                        <li>系统会自动填充对应内容</li>
+                        <li>可以在表格、列表中使用标签</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中间：编辑器 -->
+        <div class="editor-main">
+            <div class="editor-header">
+                <div class="template-info">
+                    <input type="text" id="templateName" class="template-name-input" placeholder="模板名称（例如：教案模板_2024）" value="我的教案模板">
+                    <span class="tag-count">已使用标签: <strong id="usedTagCount">0</strong></span>
+                </div>
+                <div class="editor-toolbar">
+                    <button onclick="templateEditor.insertTable()" title="插入表格">
+                        <span>📊 表格</span>
+                    </button>
+                    <button onclick="templateEditor.insertList()" title="插入列表">
+                        <span>📝 列表</span>
+                    </button>
+                    <button onclick="templateEditor.clearEditor()" title="清空内容">
+                        <span>🗑️ 清空</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="editor-wrapper">
+                <div id="editor"></div>
+            </div>
+
+            <div class="editor-footer">
+                <span class="word-count">字数: <strong id="wordCount">0</strong></span>
+                <span class="status-indicator" id="statusIndicator">● 未保存</span>
+            </div>
+        </div>
+
+        <!-- 右侧：预览面板 -->
+        <div class="preview-panel">
+            <div class="panel-header">
+                <h3>👁️ 实时预览</h3>
+                <button class="toggle-preview-btn" onclick="templateEditor.togglePreview()">
+                    <span id="previewToggleIcon">▼</span>
+                </button>
+            </div>
+            <div class="panel-content" id="previewContent">
+                <div class="preview-wrapper">
+                    <div id="previewArea" class="preview-area">
+                        <p class="placeholder-text">开始编辑以查看预览...</p>
+                    </div>
+                </div>
+                <div class="preview-stats">
+                    <h4>📊 模板统计</h4>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">标签总数</span>
+                            <span class="stat-value" id="totalTagsCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已识别</span>
+                            <span class="stat-value" id="recognizedTagsCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">未识别</span>
+                            <span class="stat-value" id="unrecognizedTagsCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" id="importFileInput" accept=".docx" style="display: none;">
+
+    <!-- Quill富文本编辑器 -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="{{ url_for('static', filename='js/template_editor.js') }}"></script>
+    
+    <script>
+        // 切换分类显示
+        function toggleCategory(header) {
+            const icon = header.querySelector('.category-icon');
+            const content = header.nextElementSibling;
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▶';
+            }
+        }
+    </script>
+</body>
+</html>
+

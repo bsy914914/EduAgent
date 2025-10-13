@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY', '')
 
 # 如果环境变量中没有设置，也可以直接在这里填写（不推荐提交到Git）
-DASHSCOPE_API_KEY = ""
+DASHSCOPE_API_KEY = "sk-0bb16e27bd224b02b7dba30c7a04daf4"
 
 # Flask配置
 FLASK_HOST = '0.0.0.0'

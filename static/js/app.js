@@ -303,23 +303,15 @@ class LessonPlanningApp {
                 this.hideLoading();
                 console.log('Loading message hidden');
                 
-                // 显示成功消息
-                this.addMessage('assistant', `✅ 模板文件上传成功
-
-📄 **文件信息**：${result.file_name}
-
-💡 **接下来**：
-请告诉我您的课程需求，例如：
-• "我要生成《数据结构》课程的教案，16课时，计算机专业"
-• "帮我做一个操作系统课程的教案，32学时"
-
-我会根据您的需求自动解析模板并生成教案。`);
-                
-                this.closeModal('templateModal');
-                
                 // 更新状态
                 this.templateUploaded = true;
                 this.templateFileName = result.file_name;
+                this.templateFilePath = result.filepath || result.file_path || '';
+                
+                // 显示选项：直接生成 or 编辑标签
+                this.showTemplateOptions(result.file_name);
+                
+                this.closeModal('templateModal');
                 this.isUploading = false;
                 
                 return true;
@@ -932,6 +924,136 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         if (confirm('确定要重置当前会话吗？这将清除所有聊天记录。')) {
             this.newChat();
             this.showNotification('会话已重置', 'info');
+        }
+    }
+    
+    /**
+     * 显示模板上传后的选项
+     */
+    showTemplateOptions(filename) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        messageDiv.innerHTML = `
+            <div class="message-avatar">🤖</div>
+            <div class="message-content">
+                <div class="message-text">
+                    <div style="margin-bottom: 20px;">
+                        ✅ <strong>模板文件上传成功</strong><br>
+                        📄 ${filename}
+                    </div>
+                    
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                padding: 20px; border-radius: 12px; margin-bottom: 15px; color: white;">
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">
+                            🌟 选择您的方式
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.9;">
+                            系统提供两种模式，请选择适合您的方式
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <!-- 方式1：直接生成 -->
+                        <div class="template-option-card" onclick="app.selectTemplateOption('direct')" 
+                             style="background: var(--surface-color); border: 2px solid var(--border-color); 
+                                    border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s;
+                                    text-align: center;">
+                            <div style="font-size: 36px; margin-bottom: 12px;">⚡</div>
+                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">
+                                快速生成
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                                系统自动识别模板<br>
+                                立即开始生成教案<br>
+                                <span style="color: #10b981; font-weight: 600;">✓ 免费</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 方式2：编辑标签 (VIP) -->
+                        <div class="template-option-card" onclick="app.selectTemplateOption('edit')"
+                             style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+                                    border: 2px solid #667eea; border-radius: 12px; padding: 20px; 
+                                    cursor: pointer; transition: all 0.3s; text-align: center; position: relative;">
+                            <div style="position: absolute; top: 8px; right: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                        color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">
+                                VIP
+                            </div>
+                            <div style="font-size: 36px; margin-bottom: 12px;">🏷️</div>
+                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">
+                                智能标签编辑
+                            </div>
+                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                                可视化编辑模板<br>
+                                精确插入60+标签<br>
+                                <span style="color: #667eea; font-weight: 600;">★ 高级功能</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(16, 163, 127, 0.05); padding: 12px; border-radius: 8px;
+                                border-left: 3px solid var(--primary-color); font-size: 13px;">
+                        💡 <strong>提示</strong>：选择"快速生成"后，请输入课程需求（如"生成数据结构课程教案，16课时"）
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('chatMessages').appendChild(messageDiv);
+        this.scrollToBottom();
+        
+        // 添加hover效果
+        if (!document.getElementById('template-option-styles')) {
+            const style = document.createElement('style');
+            style.id = 'template-option-styles';
+            style.textContent = `
+                .template-option-card:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+                    border-color: var(--primary-color) !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    /**
+     * 选择模板处理方式
+     */
+    selectTemplateOption(option) {
+        if (option === 'direct') {
+            // 直接生成模式
+            this.addMessage('assistant', `✅ 已选择 <strong>快速生成模式</strong>
+
+💬 **请输入您的课程需求**，例如：
+• "我要生成《数据结构》课程的教案，16课时，计算机专业"
+• "帮我做一个操作系统课程的教案，32学时，3学分"
+• "生成Python编程基础的教案，面向大一学生，24课时"
+
+输入后，系统将自动：
+1. 解析模板结构
+2. 生成课程大纲
+3. 批量生成教案`);
+        } else if (option === 'edit') {
+            // 编辑标签模式 - 跳转到编辑器
+            this.addMessage('assistant', `🌟 正在打开 <strong>智能标签编辑器</strong>...
+
+您将能够：
+• 可视化查看文档结构
+• 精确选择插入位置
+• 从60+标签中选择
+• 下载带标签的模板`);
+            
+            // 2秒后跳转
+            setTimeout(() => {
+                // 保存当前文件信息到sessionStorage
+                sessionStorage.setItem('uploadedFile', this.templateFileName);
+                sessionStorage.setItem('uploadedFilePath', this.templateFilePath);
+                
+                console.log('📤 传递文件信息到编辑器:', this.templateFileName, this.templateFilePath);
+                
+                // 跳转到编辑器
+                window.location.href = '/template-editor';
+            }, 2000);
         }
     }
 }

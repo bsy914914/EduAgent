@@ -40,7 +40,10 @@ class UniversityFlaskAPI:
                         template_folder='../templates',
                         static_folder='../static')
         self.app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-        self.app.config['UPLOAD_FOLDER'] = 'uploads'
+        
+        # 使用绝对路径确保上传目录正确
+        upload_folder = os.path.join(os.path.dirname(__file__), 'uploads')
+        self.app.config['UPLOAD_FOLDER'] = upload_folder
         self.app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
         
         # 启用CORS
@@ -73,6 +76,232 @@ class UniversityFlaskAPI:
         @self.app.route('/')
         def index():
             return render_template('index.html')
+        
+        # 模板编辑器页面
+        @self.app.route('/template-editor')
+        def template_editor():
+            return render_template('template_editor_v2.html')
+        
+        # === 模板编辑API ===
+        
+        # 上传Word文档用于编辑
+        @self.app.route('/api/template-editor/upload', methods=['POST'])
+        def upload_template_for_editing():
+            try:
+                if 'file' not in request.files:
+                    return jsonify({'error': '没有文件'}), 400
+                
+                file = request.files['file']
+                if file.filename == '':
+                    return jsonify({'error': '文件名为空'}), 400
+                
+                if not file.filename.endswith('.docx'):
+                    return jsonify({'error': '只支持.docx格式'}), 400
+                
+                # 保存文件
+                filename = secure_filename(file.filename)
+                session_id = uuid.uuid4().hex
+                session_dir = os.path.join(self.app.config['UPLOAD_FOLDER'], f'edit_{session_id}')
+                os.makedirs(session_dir, exist_ok=True)
+                
+                filepath = os.path.join(session_dir, filename)
+                file.save(filepath)
+                
+                print(f"✅ 文件已上传: {filepath}")
+                
+                # 提取文档结构
+                from utils.word_tag_inserter import WordTagInserter
+                inserter = WordTagInserter()
+                structure = inserter.extract_document_structure(filepath)
+                
+                if not structure:
+                    return jsonify({'error': '无法解析文档结构'}), 500
+                
+                return jsonify({
+                    'success': True,
+                    'session_id': session_id,
+                    'filename': filename,
+                    'filepath': filepath,  # 返回文件路径
+                    'structure': structure,
+                    'message': '文档上传成功'
+                })
+                
+            except Exception as e:
+                print(f"❌ 上传失败: {e}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'error': f'上传失败: {str(e)}'}), 500
+        
+        # 加载已存在的文件（从主页上传的）
+        @self.app.route('/api/template-editor/load-existing', methods=['POST'])
+        def load_existing_template():
+            try:
+                data = request.get_json()
+                print(f"📥 收到加载请求: {data}")
+                
+                filename = data.get('filename')
+                filepath = data.get('filepath')
+                
+                if not filename or not filepath:
+                    print("❌ 缺少文件信息")
+                    return jsonify({'error': '缺少文件信息'}), 400
+                
+                # 检查文件是否存在
+                if not os.path.exists(filepath):
+                    print(f"❌ 文件不存在: {filepath}")
+                    return jsonify({'error': f'文件不存在: {filepath}'}), 404
+                
+                print(f"📄 加载已存在的文件: {filepath}")
+                
+                # 创建新的编辑会话
+                session_id = uuid.uuid4().hex
+                session_dir = os.path.join(self.app.config['UPLOAD_FOLDER'], f'edit_{session_id}')
+                os.makedirs(session_dir, exist_ok=True)
+                
+                # 复制文件到编辑会话目录
+                import shutil
+                new_filepath = os.path.join(session_dir, filename)
+                shutil.copy2(filepath, new_filepath)
+                
+                print(f"✅ 文件已复制到编辑会话: {new_filepath}")
+                
+                # 提取文档结构
+                from utils.word_tag_inserter import WordTagInserter
+                inserter = WordTagInserter()
+                structure = inserter.extract_document_structure(new_filepath)
+                
+                print(f"📊 提取的文档结构: elements={len(structure.get('elements', [])) if structure else 0}")
+                
+                if not structure:
+                    print("❌ 无法解析文档结构")
+                    return jsonify({'error': '无法解析文档结构'}), 500
+                
+                print(f"✅ 成功加载文档，session_id={session_id}")
+                
+                return jsonify({
+                    'success': True,
+                    'session_id': session_id,
+                    'filename': filename,
+                    'filepath': new_filepath,  # 返回文件路径
+                    'structure': structure,
+                    'message': '文档加载成功'
+                })
+                
+            except Exception as e:
+                print(f"❌ 加载文件失败: {e}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'error': f'加载失败: {str(e)}'}), 500
+        
+        # 获取可用标签列表
+        @self.app.route('/api/template-editor/tags', methods=['GET'])
+        def get_available_tags():
+            try:
+                from utils.word_tag_inserter import WordTagInserter
+                inserter = WordTagInserter()
+                categories = inserter.get_tags_by_category()
+                
+                return jsonify({
+                    'success': True,
+                    'categories': categories,
+                    'total': len(inserter.supported_tags)
+                })
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        # 在文档中插入标签
+        @self.app.route('/api/template-editor/insert-tag', methods=['POST'])
+        def insert_tag_to_template():
+            try:
+                data = request.get_json()
+                session_id = data.get('session_id')
+                filename = data.get('filename')
+                location = data.get('location')  # {type: 'paragraph'/'table', index: int, row: int, col: int}
+                tag_name = data.get('tag_name')
+                
+                if not all([session_id, filename, location, tag_name]):
+                    return jsonify({'error': '缺少必要参数'}), 400
+                
+                print(f"📌 收到插入请求:")
+                print(f"   标签: {tag_name}")
+                print(f"   位置: {location}")
+                
+                # 构建文件路径
+                session_dir = os.path.join(self.app.config['UPLOAD_FOLDER'], f'edit_{session_id}')
+                filepath = os.path.join(session_dir, filename)
+                
+                if not os.path.exists(filepath):
+                    return jsonify({'error': '文件不存在'}), 404
+                
+                # 插入标签
+                from utils.word_tag_inserter import WordTagInserter
+                inserter = WordTagInserter()
+                output_path, success = inserter.insert_tag_to_document(
+                    filepath, location, tag_name, filepath
+                )
+                
+                if not success:
+                    return jsonify({'error': '标签插入失败'}), 500
+                
+                # 重新提取结构
+                structure = inserter.extract_document_structure(filepath)
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'标签 {{{{{{tag_name}}}}}} 已插入',
+                    'structure': structure
+                })
+                
+            except Exception as e:
+                print(f"❌ 插入标签失败: {e}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'error': f'插入失败: {str(e)}'}), 500
+        
+        # 获取文件用于渲染（不下载）
+        @self.app.route('/api/template-editor/get-file/<session_id>/<filename>', methods=['GET'])
+        def get_file_for_rendering(session_id, filename):
+            try:
+                session_dir = os.path.join(self.app.config['UPLOAD_FOLDER'], f'edit_{session_id}')
+                filepath = os.path.join(session_dir, filename)
+                
+                if not os.path.exists(filepath):
+                    return jsonify({'error': '文件不存在'}), 404
+                
+                print(f"📖 读取文件用于渲染: {filepath}")
+                
+                return send_file(
+                    filepath,
+                    as_attachment=False,
+                    mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                )
+                
+            except Exception as e:
+                print(f"❌ 读取文件失败: {e}")
+                return jsonify({'error': f'读取失败: {str(e)}'}), 500
+        
+        # 下载编辑后的模板
+        @self.app.route('/api/template-editor/download/<session_id>/<filename>', methods=['GET'])
+        def download_edited_template(session_id, filename):
+            try:
+                session_dir = os.path.join(self.app.config['UPLOAD_FOLDER'], f'edit_{session_id}')
+                filepath = os.path.join(session_dir, filename)
+                
+                if not os.path.exists(filepath):
+                    return jsonify({'error': '文件不存在'}), 404
+                
+                print(f"📥 下载文件: {filepath}")
+                
+                return send_file(
+                    filepath,
+                    as_attachment=True,
+                    download_name=f"tagged_{filename}",
+                    mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                )
+                
+            except Exception as e:
+                print(f"❌ 下载失败: {e}")
+                return jsonify({'error': f'下载失败: {str(e)}'}), 500
         
         # 健康检查
         @self.app.route('/api/health', methods=['GET'])
@@ -352,7 +581,7 @@ class UniversityFlaskAPI:
         def export_lessons():
             try:
                 print("=" * 50)
-                print("🔍 开始导出教案")
+                print("🔍 开始智能导出教案")
                 print(f"📊 教案状态检查: {hasattr(self.service.state, 'lesson_plans')}")
                 
                 if not hasattr(self.service.state, 'lesson_plans') or not self.service.state.lesson_plans:
@@ -362,31 +591,36 @@ class UniversityFlaskAPI:
                 print(f"✅ 找到 {len(self.service.state.lesson_plans)} 个教案")
                 
                 data = request.get_json()
-                export_format = data.get('format', 'word')  # word, pdf, html
+                export_format = data.get('format', 'word')  # word, txt
                 filename = data.get('filename', f'教案_{uuid.uuid4().hex[:8]}')
                 
                 print(f"📝 导出格式: {export_format}")
                 print(f"📁 文件名: {filename}")
                 
-                # 生成导出文件
+                # ========== 获取模板信息 ==========
+                template_mode = getattr(self.service.agent, 'template_mode', 'text')
+                template_path = getattr(self.service.agent, 'template_file_path', None)
+                
+                print(f"🏷️  模板模式: {template_mode}")
+                print(f"📂 模板路径: {template_path}")
+                
+                # ========== 使用智能导出 ==========
+                file_path, success = self.exporter.smart_export(
+                    lesson_plans=self.service.state.lesson_plans,
+                    course_outline=self.service.agent.course_outline if hasattr(self.service.agent, 'course_outline') else None,
+                    template_mode=template_mode,
+                    template_path=template_path,
+                    export_format=export_format
+                )
+                
+                if not success or not file_path:
+                    raise Exception("文档导出失败")
+                
+                # 设置正确的mimetype和扩展名
                 if export_format == 'word':
-                    # export_to_word 返回 (file_path, success) 元组
-                    file_path, success = self.exporter.export_to_word(
-                        self.service.state.lesson_plans,
-                        self.service.state.course_outline if hasattr(self.service.state, 'course_outline') else None
-                    )
-                    if not success or not file_path:
-                        raise Exception("Word文档生成失败")
                     mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                     file_extension = 'docx'
                 elif export_format == 'txt':
-                    # export_to_txt 返回 (file_path, success) 元组
-                    file_path, success = self.exporter.export_to_txt(
-                        self.service.state.lesson_plans,
-                        self.service.state.course_outline if hasattr(self.service.state, 'course_outline') else None
-                    )
-                    if not success or not file_path:
-                        raise Exception("TXT文档生成失败")
                     mimetype = 'text/plain'
                     file_extension = 'txt'
                 else:
