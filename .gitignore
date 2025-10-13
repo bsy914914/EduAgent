@@ -45,6 +45,7 @@ interface/exports/
 
 # 配置文件（包含敏感信息）
 .env
+config/settings.py
 config/settings.local.py
 
 # 日志文件

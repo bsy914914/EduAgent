@@ -292,10 +292,14 @@ class UniversityFlaskAPI:
                 
                 print(f"📥 下载文件: {filepath}")
                 
+                # 生成下载文件名：原文件名_tag.docx
+                name_without_ext = os.path.splitext(filename)[0]
+                download_filename = f"{name_without_ext}_tag.docx"
+                
                 return send_file(
                     filepath,
                     as_attachment=True,
-                    download_name=f"tagged_{filename}",
+                    download_name=download_filename,
                     mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                 )
                 
