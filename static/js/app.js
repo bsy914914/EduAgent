@@ -18,6 +18,7 @@ class LessonPlanningApp {
         this.courseOutlineGenerated = false;
         this.loadingMessageId = null;
         this.isUploading = false;
+        this.lastUploadedFile = null; // 记录最后上传的文件，防止重复上传
         
         this.init();
     }
@@ -46,28 +47,34 @@ class LessonPlanningApp {
             }
         });
 
-        // 文件输入事件
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            this.handleFileSelect(e.target.files[0]);
-        });
-
         // 拖拽上传（在整个页面）
         this.setupDragAndDrop();
     }
 
     setupFileUpload() {
         const fileInput = document.getElementById('fileInput');
+        const templateFileInput = document.getElementById('templateFileInput');
         const fileUploadArea = document.getElementById('fileUploadArea');
         
-        if (fileUploadArea) {
+        // 底部文件上传区域
+        if (fileUploadArea && fileInput) {
             fileUploadArea.addEventListener('click', () => {
                 fileInput.click();
             });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    this.handleFileSelect(e.target.files[0]);
+                }
+            });
         }
         
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                this.handleFileSelect(e.target.files[0]);
+        // 模态框中的文件上传
+        if (templateFileInput) {
+            templateFileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    this.handleFileSelect(e.target.files[0]);
+                }
             });
         }
     }
@@ -753,13 +760,37 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
     // 文件处理
     handleFileSelect(file) {
         if (file) {
+            // 检查是否是同一个文件（防止重复上传）
+            if (this.lastUploadedFile && 
+                this.lastUploadedFile.name === file.name && 
+                this.lastUploadedFile.size === file.size && 
+                this.lastUploadedFile.lastModified === file.lastModified) {
+                console.log('检测到重复文件，跳过上传');
+                this.showNotification('该文件已经上传过了', 'info');
+                return;
+            }
+            
+            // 检查文件类型
+            const validTypes = ['.doc', '.docx', '.jpg', '.jpeg', '.png', '.pdf'];
+            const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!validTypes.includes(fileExt)) {
+                this.showNotification('不支持的文件格式，请上传 .doc, .docx, .jpg, .png 或 .pdf 文件', 'error');
+                return;
+            }
+            
             this.addMessage('user', `上传了文件：${file.name}`);
             this.showNotification(`文件 ${file.name} 已选择`, 'info');
             
-            // 如果是模板文件，自动上传
-            if (file.name.match(/\.(doc|docx|jpg|jpeg|png|pdf)$/i)) {
-                this.uploadTemplate(file);
-            }
+            // 记录文件信息
+            this.lastUploadedFile = {
+                name: file.name,
+                size: file.size,
+                lastModified: file.lastModified
+            };
+            
+            // 自动上传文件
+            this.uploadTemplate(file);
         }
     }
 
@@ -1069,16 +1100,6 @@ function closeModal(modalId) {
     app.closeModal(modalId);
 }
 
-function uploadTemplate() {
-    const fileInput = document.getElementById('templateFileInput');
-    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-        app.showNotification('请先选择文件', 'error');
-        return;
-    }
-    
-    const file = fileInput.files[0];
-    app.uploadTemplate(file);
-}
 
 
 function sendMessage() {
