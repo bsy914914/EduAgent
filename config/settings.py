@@ -13,10 +13,10 @@ PROJECT_ROOT = Path(__file__).parent.parent
 # 请在这里填入您的通义千问 API Key
 # 方式1: 设置环境变量 DASHSCOPE_API_KEY
 # 方式2: 直接在下面填写（不推荐提交到Git）
-DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY', 'sk-0bb16e27bd224b02b7dba30c7a04daf4')
+DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY', '')
 
 # 如果需要在本地测试，可以取消下面的注释并填入您的API Key
-DASHSCOPE_API_KEY = "sk-0bb16e27bd224b02b7dba30c7a04daf4"
+# DASHSCOPE_API_KEY = ""
 
 # Flask配置
 FLASK_HOST = '0.0.0.0'

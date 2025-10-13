@@ -51,11 +51,11 @@ curl http://localhost:5000/api/health
 }
 ```
 
-#### 2. 初始化代理
+#### 2. 初始化智能体
 
 **POST** `/api/initialize`
 
-初始化AI代理
+初始化AI智能体
 
 **请求体**:
 ```json
@@ -68,7 +68,7 @@ curl http://localhost:5000/api/health
 ```json
 {
   "success": true,
-  "message": "代理初始化成功",
+  "message": "智能体初始化成功",
   "agent_initialized": true
 }
 ```
@@ -242,7 +242,7 @@ curl http://localhost:5000/api/health
 # 1. 检查服务状态
 curl http://localhost:5000/api/health
 
-# 2. 初始化代理
+# 2. 初始化智能体
 curl -X POST http://localhost:5000/api/initialize \
   -H "Content-Type: application/json" \
   -d '{"api_key":"your-api-key"}'
@@ -288,7 +288,7 @@ import json
 BASE_URL = "http://localhost:5000/api"
 API_KEY = "your-dashscope-api-key"
 
-# 1. 初始化代理
+# 1. 初始化智能体
 response = requests.post(f"{BASE_URL}/initialize", 
                         json={"api_key": API_KEY})
 print("初始化:", response.json())

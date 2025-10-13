@@ -250,7 +250,7 @@ class LessonPlanningApp {
         localStorage.setItem('courseSettings', JSON.stringify(this.courseSettings));
     }
 
-    // 代理初始化
+    // 智能体初始化
     async initializeAgent() {
         if (!this.apiKey) {
             this.showNotification('请先配置API Key', 'error');
@@ -258,12 +258,12 @@ class LessonPlanningApp {
         }
 
         try {
-            this.showLoading('正在初始化代理...');
+            this.showLoading('正在初始化智能体...');
             const result = await this.apiCall('/initialize', 'POST', { api_key: this.apiKey });
             
             if (result.success) {
                 this.isInitialized = true;
-                this.showNotification('代理初始化成功', 'success');
+                this.showNotification('智能体初始化成功', 'success');
                 this.saveSettings();
                 await this.checkApiStatus();
                 return true;
@@ -289,7 +289,7 @@ class LessonPlanningApp {
         }
         
         if (!this.isInitialized) {
-            this.showNotification('请先初始化代理', 'error');
+            this.showNotification('请先初始化智能体', 'error');
             return false;
         }
 
@@ -465,7 +465,7 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
     // 课程大纲生成（带模板解析和详细步骤反馈）
     async generateOutline() {
         if (!this.isInitialized) {
-            this.showNotification('请先初始化代理', 'error');
+            this.showNotification('请先初始化智能体', 'error');
             return false;
         }
 
@@ -523,7 +523,7 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
     // 教案生成（带详细步骤反馈）
     async generateLessons(additionalRequirements = '') {
         if (!this.isInitialized) {
-            this.showNotification('请先初始化代理', 'error');
+            this.showNotification('请先初始化智能体', 'error');
             return false;
         }
 
@@ -618,7 +618,7 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         if (!message) return;
         
         if (!this.isInitialized) {
-            this.showNotification('请先初始化代理', 'error');
+            this.showNotification('请先初始化智能体', 'error');
             return;
         }
 

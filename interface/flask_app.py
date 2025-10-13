@@ -316,7 +316,7 @@ class UniversityFlaskAPI:
                 'version': '1.0.0'
             })
         
-        # 初始化代理
+        # 初始化智能体
         @self.app.route('/api/initialize', methods=['POST'])
         def initialize_agent():
             try:
@@ -355,7 +355,7 @@ class UniversityFlaskAPI:
                     return jsonify({'error': '没有选择文件'}), 400
                 
                 if not self.service.agent:
-                    return jsonify({'error': '请先初始化代理'}), 400
+                    return jsonify({'error': '请先初始化智能体'}), 400
                 
                 # 保存文件
                 filename = secure_filename(file.filename)
@@ -381,7 +381,7 @@ class UniversityFlaskAPI:
         def parse_template():
             try:
                 if not self.service.agent:
-                    return jsonify({'error': '请先初始化代理'}), 400
+                    return jsonify({'error': '请先初始化智能体'}), 400
                 
                 if not hasattr(self.service.state, 'template_path'):
                     return jsonify({'error': '请先上传模板文件'}), 400
@@ -408,7 +408,7 @@ class UniversityFlaskAPI:
         def chat_with_user():
             try:
                 if not self.service.agent:
-                    return jsonify({'error': '请先初始化代理'}), 400
+                    return jsonify({'error': '请先初始化智能体'}), 400
                 
                 data = request.get_json()
                 message = data.get('message', '')
@@ -440,7 +440,7 @@ class UniversityFlaskAPI:
         def analyze_intent():
             try:
                 if not self.service.agent:
-                    return jsonify({'error': '请先初始化代理'}), 400
+                    return jsonify({'error': '请先初始化智能体'}), 400
                 
                 data = request.get_json()
                 message = data.get('message', '')
@@ -468,7 +468,7 @@ class UniversityFlaskAPI:
         def generate_outline():
             try:
                 if not self.service.agent:
-                    return jsonify({'error': '请先初始化代理'}), 400
+                    return jsonify({'error': '请先初始化智能体'}), 400
                 
                 if not self.service.state.template_uploaded:
                     return jsonify({'error': '请先上传模板文件'}), 400
@@ -507,7 +507,7 @@ class UniversityFlaskAPI:
         def generate_lesson():
             try:
                 if not self.service.agent:
-                    return jsonify({'error': '请先初始化代理'}), 400
+                    return jsonify({'error': '请先初始化智能体'}), 400
                 
                 if not self.service.state.course_outline:
                     return jsonify({'error': '请先生成课程大纲'}), 400
@@ -544,7 +544,7 @@ class UniversityFlaskAPI:
         def generate_all_lessons():
             try:
                 if not self.service.agent:
-                    return jsonify({'error': '请先初始化代理'}), 400
+                    return jsonify({'error': '请先初始化智能体'}), 400
                 
                 if not self.service.state.course_outline:
                     return jsonify({'error': '请先生成课程大纲'}), 400
@@ -704,7 +704,7 @@ class UniversityFlaskAPI:
         def get_conversation_history():
             try:
                 if not self.service.agent:
-                    return jsonify({'error': '请先初始化代理'}), 400
+                    return jsonify({'error': '请先初始化智能体'}), 400
                 
                 history = self.service.agent.get_conversation_history()
                 return jsonify({
@@ -720,7 +720,7 @@ class UniversityFlaskAPI:
         def clear_conversation():
             try:
                 if not self.service.agent:
-                    return jsonify({'error': '请先初始化代理'}), 400
+                    return jsonify({'error': '请先初始化智能体'}), 400
                 
                 self.service.agent.clear_conversation_history()
                 return jsonify({

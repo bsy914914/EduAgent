@@ -49,7 +49,7 @@ pip install flask flask-cors werkzeug
    python flask_main.py --debug
    ```
 
-2. **初始化代理**
+2. **初始化智能体**
    ```bash
    curl -X POST http://localhost:5000/api/initialize \
      -H "Content-Type: application/json" \

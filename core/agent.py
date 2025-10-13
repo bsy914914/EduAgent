@@ -944,8 +944,8 @@ class UniversityCourseAgent:
 
 回答要简洁明了，不超过300字。"""
 
-            # 构建消息历史（最近10条）并传入LLM，确保上下文保留
-            recent_history = self.conversation_history[-10:] if len(self.conversation_history) > 10 else self.conversation_history
+            # 构建消息历史（最近30条）并传入LLM，确保上下文保留
+            recent_history = self.conversation_history[-30:] if len(self.conversation_history) > 30 else self.conversation_history
 
             lc_messages = [SystemMessage(content=system_prompt)]
             for msg in recent_history:
