@@ -20,6 +20,10 @@ class LessonPlanningApp {
         this.isUploading = false;
         this.lastUploadedFile = null; // 记录最后上传的文件，防止重复上传
         
+        // 模式管理
+        this.currentMode = null; // 'chat' 或 'lesson'
+        this.modeLocked = false; // 是否锁定当前模式
+        
         this.init();
     }
 
@@ -149,6 +153,12 @@ class LessonPlanningApp {
             if (files.length > 0) {
                 const file = files[0];
                 console.log('File dropped:', file);
+                
+                // 在智能对话模式下阻止上传
+                if (this.currentMode === 'chat') {
+                    this.showNotification('当前处于智能对话模式，已禁止文件上传。', 'warning');
+                    return;
+                }
                 
                 // 检查文件类型
                 const validTypes = ['.doc', '.docx', '.jpg', '.jpeg', '.png', '.pdf'];
@@ -612,6 +622,38 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
             return;
         }
 
+        // 检查模式限制
+        if (this.currentMode === 'chat') {
+            // 智能对话模式：只允许对话，不允许文件上传或教案生成
+            if (this.isLessonRelatedCommand(message)) {
+                this.addMessage('assistant', `⚠️ 当前处于智能对话模式，无法进行教案生成相关操作。
+
+如需生成教案，请：
+1. 点击右上角的重置按钮
+2. 选择"教案生成"模式
+3. 重新开始教案生成流程
+
+💬 现在请继续我们的对话交流。`);
+                input.value = '';
+                this.autoResizeTextarea(input);
+                return;
+            }
+        } else if (this.currentMode === 'lesson') {
+            // 教案生成模式：只允许教案相关操作，限制其他对话
+            if (!this.isLessonRelatedCommand(message) && !this.templateUploaded) {
+                this.addMessage('assistant', `⚠️ 当前处于教案生成模式，请专注于教案生成任务。
+
+📄 请先：
+1. 上传教案模板文件（拖拽到页面或点击上传按钮）
+2. 输入课程信息（如"生成数据结构课程教案，16课时"）
+
+💡 或者点击右上角重置按钮切换到智能对话模式。`);
+                input.value = '';
+                this.autoResizeTextarea(input);
+                return;
+            }
+        }
+
         // 切换到聊天界面
         this.showChatContainer();
         
@@ -624,7 +666,7 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         this.showTypingIndicator();
 
         try {
-            // 使用AI分析用户意图
+            // 首先尝试使用AI分析用户意图
             const intentResult = await this.apiCall('/analyze-intent', 'POST', { message });
             console.log('Intent analysis result:', intentResult);
             
@@ -656,24 +698,59 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
                 }
             }
             
-            // 处理特殊命令
-            if (message.includes('上传模板') || message.includes('模板')) {
-                this.showTemplateUpload();
-                this.addMessage('assistant', '请在弹出的窗口中上传您的教案模板文件。支持Word文档(.doc/.docx)和图片文件(.jpg/.png)格式。');
-            } else if (message.includes('导出') || message.includes('下载')) {
-                this.addMessage('assistant', '请点击右上角的导出按钮下载教案文件。如果还没有生成教案，请先完成教案生成。');
-            } else if (!this.isInitialized) {
-                this.addMessage('assistant', '⚠️ 请先配置API Key，点击顶部的钥匙图标。');
-            } else if (!hasTemplate) {
-                this.addMessage('assistant', `📋 请先上传教案模板，点击顶部的文档图标。
+            // 检查是否是教案相关的特殊命令
+            if (this.isLessonRelatedCommand(message)) {
+                await this.handleLessonCommand(message, hasTemplate, hasOutline);
+                return;
+            }
+            
+            // 如果不是教案相关命令，进行普通对话
+            const chatResult = await this.apiCall('/chat', 'POST', { message });
+            
+            if (chatResult.success) {
+                this.addMessage('assistant', chatResult.response);
+            } else {
+                throw new Error(chatResult.error);
+            }
+            
+        } catch (error) {
+            this.addMessage('assistant', `抱歉，处理您的请求时出现了错误：${error.message}`);
+        } finally {
+            this.hideTypingIndicator();
+            this.scrollToBottom();
+        }
+    }
+
+    // 判断是否是教案相关的命令
+    isLessonRelatedCommand(message) {
+        const lessonKeywords = [
+            '上传模板', '模板', '导出', '下载', '生成教案', '课程大纲', 
+            '教案生成', '课程', '课时', '学分', '专业', '年级',
+            '数据结构', '操作系统', '编程', '教学', '课程设计'
+        ];
+        
+        return lessonKeywords.some(keyword => message.includes(keyword));
+    }
+
+    // 处理教案相关的命令
+    async handleLessonCommand(message, hasTemplate, hasOutline) {
+        if (message.includes('上传模板') || message.includes('模板')) {
+            this.showTemplateUpload();
+            this.addMessage('assistant', '请在弹出的窗口中上传您的教案模板文件。支持Word文档(.doc/.docx)和图片文件(.jpg/.png)格式。');
+        } else if (message.includes('导出') || message.includes('下载')) {
+            this.addMessage('assistant', '请点击右上角的导出按钮下载教案文件。如果还没有生成教案，请先完成教案生成。');
+        } else if (!this.isInitialized) {
+            this.addMessage('assistant', '⚠️ 请先配置API Key，点击顶部的钥匙图标。');
+        } else if (!hasTemplate) {
+            this.addMessage('assistant', `📋 请先上传教案模板，点击顶部的文档图标。
 
 💡 **提示**：上传模板后，告诉我您的课程需求，例如：
 • "我要生成《数据结构》课程的教案，16课时，计算机专业"
 
 系统将自动完成所有步骤。`);
-            } else {
-                // 模板已上传，但没有识别到课程信息，可能是用户随意输入
-                this.addMessage('assistant', `💭 我没有从您的输入中识别到完整的课程信息。
+        } else {
+            // 模板已上传，但没有识别到课程信息，可能是用户随意输入
+            this.addMessage('assistant', `💭 我没有从您的输入中识别到完整的课程信息。
 
 请告诉我：
 • 课程名称（例如：数据结构、操作系统）
@@ -684,12 +761,6 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
 "我要生成《数据结构》课程的教案，16课时，计算机专业"
 
 这样我就能为您自动生成教案了。`);
-            }
-        } catch (error) {
-            this.addMessage('assistant', `抱歉，处理您的请求时出现了错误：${error.message}`);
-        } finally {
-            this.hideTypingIndicator();
-            this.scrollToBottom();
         }
     }
 
@@ -760,6 +831,12 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
     // 文件处理
     handleFileSelect(file) {
         if (file) {
+            // 检查当前模式
+            if (this.currentMode === 'chat') {
+                this.showNotification('当前处于智能对话模式，无法上传文件。请重置会话后选择教案生成模式。', 'warning');
+                return;
+            }
+            
             // 检查是否是同一个文件（防止重复上传）
             if (this.lastUploadedFile && 
                 this.lastUploadedFile.name === file.name && 
@@ -941,6 +1018,102 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         }, 5000);
     }
 
+    // 模式管理
+    startChatMode() {
+        if (this.modeLocked && this.currentMode !== 'chat') {
+            this.showNotification('当前处于教案生成模式，请先完成教案生成或重置会话', 'warning');
+            return;
+        }
+        
+        this.currentMode = 'chat';
+        this.modeLocked = true;
+        this.showChatContainer();
+        // 显示底部输入区（对话框）
+        const bottomInputArea = document.querySelector('.bottom-input-area');
+        if (bottomInputArea) bottomInputArea.style.display = '';
+        
+        // 清空聊天记录
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+            chatMessages.innerHTML = '';
+        }
+        
+        this.addMessage('assistant', `✅ 已进入智能对话模式
+        
+💬 现在您可以：
+• 询问教学相关问题
+• 获取教学方法建议
+• 讨论课程设计思路
+• 进行教育话题交流
+
+⚠️ 注意：在此模式下无法上传文件或生成教案，如需生成教案请重置会话后选择教案生成模式。`);
+        
+        this.showNotification('已进入智能对话模式', 'success');
+
+        // 隐藏上传与导出相关UI
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        if (fileUploadArea) fileUploadArea.style.display = 'none';
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) exportBtn.style.display = 'none';
+    }
+    
+    startLessonMode() {
+        if (this.modeLocked && this.currentMode !== 'lesson') {
+            this.showNotification('当前处于智能对话模式，请先重置会话后选择教案生成模式', 'warning');
+            return;
+        }
+        
+        this.currentMode = 'lesson';
+        this.modeLocked = true;
+        this.showChatContainer();
+        // 显示底部输入区（对话框）
+        const bottomInputArea = document.querySelector('.bottom-input-area');
+        if (bottomInputArea) bottomInputArea.style.display = '';
+        
+        // 清空聊天记录
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+            chatMessages.innerHTML = '';
+        }
+        
+        this.addMessage('assistant', `✅ 已进入教案生成模式
+        
+📄 现在您可以：
+• 上传教案模板文件
+• 生成课程大纲
+• 批量生成完整教案
+• 导出教案文档
+
+⚠️ 注意：在此模式下专注于教案生成任务，无法进行其他对话交流。`);
+        
+        this.showNotification('已进入教案生成模式', 'success');
+
+        // 显示上传与导出相关UI
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        if (fileUploadArea) fileUploadArea.style.display = '';
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) exportBtn.style.display = '';
+    }
+    
+    resetMode() {
+        this.currentMode = null;
+        this.modeLocked = false;
+        this.templateUploaded = false;
+        this.templateParsed = false;
+        this.templateFileName = '';
+        this.courseOutlineGenerated = false;
+        this.showWelcomeScreen();
+        this.showNotification('模式已重置，请重新选择使用模式', 'info');
+
+        // 重置时恢复默认显示状态
+        const bottomInputArea = document.querySelector('.bottom-input-area');
+        if (bottomInputArea) bottomInputArea.style.display = 'none';
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        if (fileUploadArea) fileUploadArea.style.display = 'none';
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) exportBtn.style.display = 'none';
+    }
+
     // 界面切换
     newChat() {
         this.currentChatId = null;
@@ -952,9 +1125,30 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
     }
 
     resetSession() {
-        if (confirm('确定要重置当前会话吗？这将清除所有聊天记录。')) {
-            this.newChat();
-            this.showNotification('会话已重置', 'info');
+        if (confirm('确定要重置当前会话吗？这将清除所有聊天记录并退出当前模式。')) {
+            this.resetMode();
+            this.clearConversationHistory();
+        }
+    }
+
+    // 清空对话历史
+    async clearConversationHistory() {
+        try {
+            await this.apiCall('/clear-conversation', 'POST', {});
+            console.log('对话历史已清空');
+        } catch (error) {
+            console.error('清空对话历史失败:', error);
+        }
+    }
+
+    // 获取对话历史
+    async getConversationHistory() {
+        try {
+            const result = await this.apiCall('/conversation-history', 'GET');
+            return result.history || [];
+        } catch (error) {
+            console.error('获取对话历史失败:', error);
+            return [];
         }
     }
     
@@ -969,7 +1163,7 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
             <div class="message-content">
                 <div class="message-text">
                     <div style="margin-bottom: 20px;">
-                        ✅ <strong>模板文件上传成功</strong><br>
+                        ✅ 模板文件上传成功<br>
                         📄 ${filename}
                     </div>
                     
@@ -1023,7 +1217,7 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
                     
                     <div style="background: rgba(16, 163, 127, 0.05); padding: 12px; border-radius: 8px;
                                 border-left: 3px solid var(--primary-color); font-size: 13px;">
-                        💡 <strong>提示</strong>：选择"快速生成"后，请输入课程需求（如"生成数据结构课程教案，16课时"）
+                        💡 提示：选择"快速生成"后，请输入课程需求（如"生成数据结构课程教案，16课时"）
                     </div>
                 </div>
             </div>
@@ -1053,7 +1247,7 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
     selectTemplateOption(option) {
         if (option === 'direct') {
             // 直接生成模式
-            this.addMessage('assistant', `✅ 已选择 <strong>快速生成模式</strong>
+            this.addMessage('assistant', `✅ 已选择快速生成模式
 
 💬 **请输入您的课程需求**，例如：
 • "我要生成《数据结构》课程的教案，16课时，计算机专业"
@@ -1066,7 +1260,7 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
 3. 批量生成教案`);
         } else if (option === 'edit') {
             // 编辑标签模式 - 跳转到编辑器
-            this.addMessage('assistant', `🌟 正在打开 <strong>智能标签编辑器</strong>...
+            this.addMessage('assistant', `🌟 正在打开智能标签编辑器...
 
 您将能够：
 • 可视化查看文档结构
@@ -1119,6 +1313,14 @@ function resetSession() {
 
 function newChat() {
     app.newChat();
+}
+
+function startChatMode() {
+    app.startChatMode();
+}
+
+function startLessonMode() {
+    app.startLessonMode();
 }
 
 // 页面加载完成后初始化应用

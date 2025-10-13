@@ -403,6 +403,38 @@ class UniversityFlaskAPI:
             except Exception as e:
                 return jsonify({'error': f'模板解析失败: {str(e)}'}), 500
         
+        # 通用对话接口
+        @self.app.route('/api/chat', methods=['POST'])
+        def chat_with_user():
+            try:
+                if not self.service.agent:
+                    return jsonify({'error': '请先初始化代理'}), 400
+                
+                data = request.get_json()
+                message = data.get('message', '')
+                
+                if not message:
+                    return jsonify({'error': '消息不能为空'}), 400
+                
+                # 异步对话处理
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    response = loop.run_until_complete(
+                        self.service.agent.chat_with_user(message)
+                    )
+                finally:
+                    loop.close()
+                
+                return jsonify({
+                    'success': True,
+                    'response': response,
+                    'message_type': 'chat'
+                })
+                
+            except Exception as e:
+                return jsonify({'error': f'对话处理失败: {str(e)}'}), 500
+
         # 分析用户意图
         @self.app.route('/api/analyze-intent', methods=['POST'])
         def analyze_intent():
@@ -667,6 +699,38 @@ class UniversityFlaskAPI:
             except Exception as e:
                 return jsonify({'error': f'获取状态失败: {str(e)}'}), 500
         
+        # 获取对话历史
+        @self.app.route('/api/conversation-history', methods=['GET'])
+        def get_conversation_history():
+            try:
+                if not self.service.agent:
+                    return jsonify({'error': '请先初始化代理'}), 400
+                
+                history = self.service.agent.get_conversation_history()
+                return jsonify({
+                    'success': True,
+                    'history': history
+                })
+                
+            except Exception as e:
+                return jsonify({'error': f'获取对话历史失败: {str(e)}'}), 500
+
+        # 清空对话历史
+        @self.app.route('/api/clear-conversation', methods=['POST'])
+        def clear_conversation():
+            try:
+                if not self.service.agent:
+                    return jsonify({'error': '请先初始化代理'}), 400
+                
+                self.service.agent.clear_conversation_history()
+                return jsonify({
+                    'success': True,
+                    'message': '对话历史已清空'
+                })
+                
+            except Exception as e:
+                return jsonify({'error': f'清空对话历史失败: {str(e)}'}), 500
+
         # 重置状态
         @self.app.route('/api/reset', methods=['POST'])
         def reset_state():
