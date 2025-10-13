@@ -53,6 +53,8 @@ class UniversityCourseAgent:
             
             if file_extension in ['.doc', '.docx']:
                 print(f"🔍 检测到Word文档，开始检测模板类型...")
+                print(f"   文件路径: {file_path}")
+                print(f"   文件大小: {Path(file_path).stat().st_size / 1024:.2f} KB")
                 
                 # ========== 新增：检测XML标签 ==========
                 try:
@@ -84,7 +86,13 @@ class UniversityCourseAgent:
                         print(f"📝 未检测到XML标签，使用传统视觉识别方式")
                         self.template_mode = "text"
                 except Exception as tag_error:
-                    print(f"⚠️  标签检测失败，使用传统方式: {tag_error}")
+                    import traceback
+                    print(f"⚠️  标签检测失败，使用传统方式")
+                    print(f"   错误类型: {type(tag_error).__name__}")
+                    print(f"   错误信息: {str(tag_error)}")
+                    if "unsupport" in str(tag_error).lower() or "format" in str(tag_error).lower():
+                        print(f"   💡 提示: 文件可能不是标准的.docx格式")
+                        print(f"   💡 建议: 用Microsoft Word或WPS重新保存为.docx")
                     self.template_mode = "text"
                 
                 # ========== 传统视觉识别方式 ==========

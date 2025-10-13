@@ -447,6 +447,21 @@ class WordTemplateFiller:
             dict: 包含找到的标签和未识别的标签
         """
         try:
+            # 先检查文件是否是有效的docx
+            from pathlib import Path
+            import zipfile
+            
+            file_path = Path(template_path)
+            
+            # 检查是否为有效的ZIP文件（docx本质是zip）
+            try:
+                with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                    # 检查关键文件
+                    if 'word/document.xml' not in zip_ref.namelist():
+                        raise ValueError("不是有效的.docx文件: 缺少word/document.xml")
+            except zipfile.BadZipFile:
+                raise ValueError("不是有效的.docx文件: 文件可能是旧的.doc格式或已损坏")
+            
             doc = DocxTemplate(template_path)
             
             # 获取模板中的所有变量
@@ -471,10 +486,16 @@ class WordTemplateFiller:
             }
             
         except Exception as e:
+            error_msg = str(e)
+            # 提供更友好的错误信息
+            if "BadZipFile" in str(type(e).__name__) or "不是有效的.docx" in error_msg:
+                error_msg = f"文件格式错误: {error_msg}. 请确保文件是标准的.docx格式（不是.doc）"
+            
             return {
                 'success': False,
                 'has_tags': False,
-                'error': str(e)
+                'error': error_msg,
+                'error_type': type(e).__name__
             }
     
     def detect_template_mode(self, template_path: str) -> str:
