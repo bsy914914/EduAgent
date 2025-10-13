@@ -40,9 +40,12 @@ uploads/*
 !uploads/.gitkeep
 exports/*
 !exports/.gitkeep
+interface/uploads/
+interface/exports/
 
 # 配置文件（包含敏感信息）
 .env
+config/settings.local.py
 
 # 日志文件
 *.log
@@ -62,4 +65,6 @@ failed_json_response.txt
 
 # 测试文件
 test*.py
+test*.html
+test_*.py
 
