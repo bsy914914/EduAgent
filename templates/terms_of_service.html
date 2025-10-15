@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务条款 - EduAgent智教创想</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+    <style>
+        .terms-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .terms-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .terms-title {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .terms-version {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .terms-date {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .terms-content {
+            line-height: 1.8;
+            color: #333;
+        }
+        
+        .terms-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .section-subtitle {
+            color: #34495e;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+        }
+        
+        .terms-list {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .terms-list li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+        
+        .highlight {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        
+        .close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .close-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(108, 117, 125, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .back-btn:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            .terms-container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            .terms-title {
+                font-size: 24px;
+            }
+            
+            .section-title {
+                font-size: 18px;
+            }
+            
+            .close-btn, .back-btn {
+                position: relative;
+                top: auto;
+                right: auto;
+                left: auto;
+                margin: 10px 5px;
+                display: inline-block;
+            }
+        }
+    </style>
+</head>
+<body class="auth-body">
+    <button class="close-btn" onclick="closeTerms()">关闭</button>
+    <button class="back-btn" onclick="goBack()">返回</button>
+    
+    <div class="terms-container">
+        <div class="terms-header">
+            <h1 class="terms-title">EduAgent-教师协作智能体平台服务条款</h1>
+            <div class="terms-version">版本号：V2025.V1</div>
+            <div class="terms-date">生效日期：2025年10月16日</div>
+        </div>
+        
+        <div class="terms-content">
+            <div class="terms-section">
+                <h2 class="section-title">一、服务范围与对象</h2>
+                
+                <div class="section-subtitle">1. 服务定义</div>
+                <p>EduAgent平台为教育工作者（含在职教师、教研人员等，需通过身份核验）提供智能协作服务，核心功能包括但不限于：教学方案生成、分层习题匹配、学情数据可视化分析、教学资源智能整理、课堂互动话术建议等。</p>
+                
+                <div class="section-subtitle">2. 服务边界</div>
+                <div class="highlight">
+                    <p>平台智能体生成的所有内容（如教案、习题、分析报告）仅为"教学辅助素材"，不构成最终教学决策依据；教师需对素材的准确性、合规性（符合国家教育政策、学科课程标准）进行最终审核，平台不对未经审核的内容承担责任。</p>
+                </div>
+            </div>
+            
+            <div class="terms-section">
+                <h2 class="section-title">二、用户权利与义务</h2>
+                
+                <div class="section-subtitle">（一）用户权利</div>
+                <ol class="terms-list">
+                    <li>可根据教学需求自主选择智能体功能，自定义参数（如学段、学科、知识点、学生能力层次等）；</li>
+                    <li>有权在"个人中心-数据管理"页面查看、导出本人上传的教学数据（如学情记录、需求指令），或申请删除非必要数据；</li>
+                    <li>服务期间若遇功能故障或体验问题，可通过"客服反馈"通道提交诉求，平台将在1-3个工作日内响应。</li>
+                </ol>
+                
+                <div class="section-subtitle">（二）用户义务</div>
+                <ol class="terms-list">
+                    <li><strong>身份真实性承诺：</strong>注册时需提供真实的教师身份信息（如教师资格证、工作单位证明等），不冒用他人身份或伪造资质；若身份信息变更，需及时更新，否则平台有权暂停服务；</li>
+                    <li><strong>合规使用要求：</strong>不利用智能体生成违反教育政策（如超前教学、违规知识点）、低俗色情、侵权（抄袭他人教案/习题）或危害意识形态的内容；不将平台服务用于商业盈利（如出售智能体生成的素材）、校外培训引流等非教学场景；</li>
+                    <li><strong>账号管理责任：</strong>妥善保管平台账号（含密码、验证码），不转借、出租或出售账号；若发现账号被盗用，需立即联系平台冻结，因账号泄露导致的服务滥用或数据风险，由用户自行承担。</li>
+                </ol>
+            </div>
+            
+            <div class="terms-section">
+                <h2 class="section-title">三、平台权利与义务</h2>
+                
+                <div class="section-subtitle">（一）平台权利</div>
+                <ol class="terms-list">
+                    <li>可根据国家教育政策调整、技术升级或用户反馈，优化智能体功能（如更新题库、迭代分析模型），或暂停部分不符合合规要求的功能，调整前将通过平台公告提前3个工作日通知；</li>
+                    <li>若用户违反本条款（如冒用身份、生成违规内容），平台有权采取警告、限制功能、暂停服务、注销账号等措施，且不退还已支付的服务费用（如有）；</li>
+                    <li>为提升服务质量，可匿名统计用户的功能使用频次、操作习惯（不关联个人身份信息），用于智能体模型训练，但不泄露用户个人数据。</li>
+                </ol>
+                
+                <div class="section-subtitle">（二）平台义务</div>
+                <ol class="terms-list">
+                    <li><strong>保障服务稳定性：</strong>正常运营时段（每日6:00-24:00）内，平台核心功能可用性不低于99%；若需进行系统维护，将提前24小时在首页弹窗通知；</li>
+                    <li><strong>数据安全保障：</strong>采用加密存储（用户身份信息、教学数据均加密处理）、访问权限分级（仅授权运维人员在合规范围内操作）、日志追溯（所有数据操作留痕）等措施，防止数据泄露、篡改或丢失；</li>
+                    <li><strong>协议透明化：</strong>本条款内容清晰易懂，无隐藏条款；若后续修订（如新增合规要求），将通过"协议更新通知"推送至用户账号，用户需重新确认同意后方可继续使用服务。</li>
+                </ol>
+            </div>
+            
+            <div class="terms-section">
+                <h2 class="section-title">四、服务费用与期限</h2>
+                
+                <ol class="terms-list">
+                    <li><strong>费用规则：</strong>平台基础功能（如教案生成、习题匹配）免费开放；高级功能（如定制化学情分析、专属资源库）若需收费，将明确标注价格、服务周期及退费规则，用户自愿选择购买，付费后不支持无理由退费（因平台功能故障导致无法使用的除外）；</li>
+                    <li><strong>服务期限：</strong>免费功能长期有效（除非平台终止运营）；付费功能期限以订单约定为准，到期后若未续费，将自动恢复至基础功能权限。</li>
+                </ol>
+            </div>
+            
+            <div class="terms-section">
+                <h2 class="section-title">五、协议终止与责任限制</h2>
+                
+                <div class="section-subtitle">1. 协议终止情形：</div>
+                <ul class="terms-list">
+                    <li><strong>用户主动申请注销账号：</strong>需完成数据导出或删除后，提交注销申请，平台将在15个工作日内完成注销，注销后所有个人数据（除法律法规要求留存的外）将彻底删除；</li>
+                    <li><strong>平台终止运营：</strong>若因不可抗力（如政策要求、技术迭代终止）需停止服务，将提前30个工作日发布公告，为用户提供数据导出通道，并退还未到期的付费服务费用；</li>
+                </ul>
+                
+                <div class="section-subtitle">2. 责任限制</div>
+                <div class="warning">
+                    <p>平台不对因不可抗力（如自然灾害、网络中断）、第三方服务故障（如支付系统、身份核验接口异常）或用户操作失误导致的服务中断、数据延迟承担责任；平台对用户的赔偿责任上限，不超过用户已支付的服务费用（免费用户不涉及赔偿）。</p>
+                </div>
+            </div>
+            
+            <div class="terms-section">
+                <h2 class="section-title">六、其他约定</h2>
+                
+                <ol class="terms-list">
+                    <li>本条款未尽事宜，需遵守《中华人民共和国教育法》《中华人民共和国个人信息保护法》《网络安全法》等法律法规；</li>
+                    <li>若用户与平台就本条款产生争议，优先通过协商解决；协商不成的，可向平台所在地（如XX省XX市）有管辖权的人民法院提起诉讼；</li>
+                    <li><strong>用户注册并使用平台服务，即视为已完整阅读、理解并接受本条款全部内容。</strong></li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function closeTerms() {
+            // 如果是弹窗模式，关闭弹窗
+            if (window.opener) {
+                window.close();
+            } else {
+                // 否则返回上一页
+                history.back();
+            }
+        }
+        
+        function goBack() {
+            history.back();
+        }
+        
+        // 键盘事件处理
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeTerms();
+            }
+        });
+    </script>
+</body>
+</html>

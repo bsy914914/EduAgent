@@ -1,5 +1,5 @@
 """
-Flask API接口 - 大学AI教案生成系统
+Flask API接口 - EduAgent智教创想
 University AI Lesson Planning System - Flask API
 
 提供RESTful API接口，支持：
@@ -18,6 +18,9 @@ from typing import Dict, List, Optional
 from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify, send_file, render_template
 from flask_cors import CORS
+from flask_login import LoginManager
+from flask_sqlalchemy import SQLAlchemy
+from flask_mail import Mail
 import tempfile
 import uuid
 
@@ -29,7 +32,12 @@ sys.path.insert(0, str(project_root))
 from core.agent import UniversityCourseAgent
 from core.lesson_planner import LessonPlannerService
 from utils.lesson_exporter import LessonExporter
-from config.settings import DASHSCOPE_API_KEY
+from config.settings import DASHSCOPE_API_KEY, DATABASE_URL, SECRET_KEY, MAIL_CONFIG
+
+# 导入认证模块
+from models.user import User, db
+from interface.auth_routes import auth_bp
+from interface.auth_middleware import require_auth, optional_auth
 
 
 class UniversityFlaskAPI:
@@ -44,10 +52,35 @@ class UniversityFlaskAPI:
         # 使用绝对路径确保上传目录正确
         upload_folder = os.path.join(os.path.dirname(__file__), 'uploads')
         self.app.config['UPLOAD_FOLDER'] = upload_folder
-        self.app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
+        self.app.config['SECRET_KEY'] = SECRET_KEY
+        
+        # 数据库配置
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+        self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        
+        # 邮件配置
+        for key, value in MAIL_CONFIG.items():
+            self.app.config[key] = value
         
         # 启用CORS
         CORS(self.app)
+        
+        # 初始化数据库
+        db.init_app(self.app)
+        
+        # 初始化邮件服务
+        self.mail = Mail(self.app)
+        
+        # 初始化登录管理器
+        self.login_manager = LoginManager()
+        self.login_manager.init_app(self.app)
+        self.login_manager.login_view = 'auth.login'
+        self.login_manager.login_message = '请先登录'
+        self.login_manager.login_message_category = 'info'
+        
+        @self.login_manager.user_loader
+        def load_user(user_id):
+            return User.query.get(int(user_id))
         
         # 创建上传目录
         os.makedirs(self.app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -66,8 +99,15 @@ class UniversityFlaskAPI:
                 print(f'⚠️  Agent自动初始化失败: {e}')
                 print('💡 您可以稍后在前端手动初始化')
         
+        # 注册蓝图
+        self.app.register_blueprint(auth_bp)
+        
         # 注册路由
         self._register_routes()
+        
+        # 创建数据库表
+        with self.app.app_context():
+            db.create_all()
     
     def _register_routes(self):
         """注册所有API路由"""
@@ -76,6 +116,33 @@ class UniversityFlaskAPI:
         @self.app.route('/')
         def index():
             return render_template('index.html')
+        
+        # 认证页面路由
+        @self.app.route('/login')
+        def login_page():
+            return render_template('login.html')
+        
+        @self.app.route('/register')
+        def register_page():
+            return render_template('register.html')
+        
+        @self.app.route('/forgot-password')
+        def forgot_password_page():
+            return render_template('forgot_password.html')
+        
+        @self.app.route('/reset-password')
+        def reset_password_page():
+            return render_template('reset_password.html')
+        
+        @self.app.route('/terms-of-service')
+        def terms_of_service_page():
+            return render_template('terms_of_service.html')
+        
+        @self.app.route('/privacy-policy')
+        def privacy_policy_page():
+            return render_template('privacy_policy.html')
+        
+        
         
         # 模板编辑器页面
         @self.app.route('/template-editor')
@@ -86,6 +153,7 @@ class UniversityFlaskAPI:
         
         # 上传Word文档用于编辑
         @self.app.route('/api/template-editor/upload', methods=['POST'])
+        @require_auth
         def upload_template_for_editing():
             try:
                 if 'file' not in request.files:
@@ -134,6 +202,7 @@ class UniversityFlaskAPI:
         
         # 加载已存在的文件（从主页上传的）
         @self.app.route('/api/template-editor/load-existing', methods=['POST'])
+        @require_auth
         def load_existing_template():
             try:
                 data = request.get_json()
@@ -195,6 +264,7 @@ class UniversityFlaskAPI:
         
         # 获取可用标签列表
         @self.app.route('/api/template-editor/tags', methods=['GET'])
+        @require_auth
         def get_available_tags():
             try:
                 from utils.word_tag_inserter import WordTagInserter
@@ -211,6 +281,7 @@ class UniversityFlaskAPI:
         
         # 在文档中插入标签
         @self.app.route('/api/template-editor/insert-tag', methods=['POST'])
+        @require_auth
         def insert_tag_to_template():
             try:
                 data = request.get_json()
@@ -260,6 +331,7 @@ class UniversityFlaskAPI:
         
         # 获取文件用于渲染（不下载）
         @self.app.route('/api/template-editor/get-file/<session_id>/<filename>', methods=['GET'])
+        @require_auth
         def get_file_for_rendering(session_id, filename):
             try:
                 session_dir = os.path.join(self.app.config['UPLOAD_FOLDER'], f'edit_{session_id}')
@@ -282,6 +354,7 @@ class UniversityFlaskAPI:
         
         # 下载编辑后的模板
         @self.app.route('/api/template-editor/download/<session_id>/<filename>', methods=['GET'])
+        @require_auth
         def download_edited_template(session_id, filename):
             try:
                 session_dir = os.path.join(self.app.config['UPLOAD_FOLDER'], f'edit_{session_id}')
@@ -312,12 +385,13 @@ class UniversityFlaskAPI:
         def health_check():
             return jsonify({
                 'status': 'healthy',
-                'message': '大学AI教案生成系统运行正常',
+                'message': 'EduAgent智教创想运行正常',
                 'version': '1.0.0'
             })
         
         # 初始化智能体
         @self.app.route('/api/initialize', methods=['POST'])
+        @require_auth
         def initialize_agent():
             try:
                 data = request.get_json()
@@ -378,6 +452,7 @@ class UniversityFlaskAPI:
         
         # 解析模板（在需要时调用）
         @self.app.route('/api/parse-template', methods=['POST'])
+        @require_auth
         def parse_template():
             try:
                 if not self.service.agent:
@@ -405,6 +480,7 @@ class UniversityFlaskAPI:
         
         # 通用对话接口
         @self.app.route('/api/chat', methods=['POST'])
+        @require_auth
         def chat_with_user():
             try:
                 if not self.service.agent:
@@ -437,6 +513,7 @@ class UniversityFlaskAPI:
 
         # 分析用户意图
         @self.app.route('/api/analyze-intent', methods=['POST'])
+        @require_auth
         def analyze_intent():
             try:
                 if not self.service.agent:
@@ -465,6 +542,7 @@ class UniversityFlaskAPI:
         
         # 生成课程大纲
         @self.app.route('/api/generate-outline', methods=['POST'])
+        @require_auth
         def generate_outline():
             try:
                 if not self.service.agent:
@@ -504,6 +582,7 @@ class UniversityFlaskAPI:
         
         # 生成单个教案
         @self.app.route('/api/generate-lesson', methods=['POST'])
+        @require_auth
         def generate_lesson():
             try:
                 if not self.service.agent:
@@ -541,6 +620,7 @@ class UniversityFlaskAPI:
         
         # 批量生成所有教案
         @self.app.route('/api/generate-all-lessons', methods=['POST'])
+        @require_auth
         def generate_all_lessons():
             try:
                 if not self.service.agent:
@@ -604,6 +684,7 @@ class UniversityFlaskAPI:
         
         # 获取教案生成进度（轮询接口）
         @self.app.route('/api/lesson-generation-progress', methods=['GET'])
+        @require_auth
         def get_lesson_progress():
             try:
                 if hasattr(self.service, 'generation_progress'):
@@ -614,6 +695,7 @@ class UniversityFlaskAPI:
         
         # 导出教案为Word文档
         @self.app.route('/api/export-lessons', methods=['POST'])
+        @require_auth
         def export_lessons():
             try:
                 print("=" * 50)
@@ -683,6 +765,7 @@ class UniversityFlaskAPI:
         
         # 获取当前状态
         @self.app.route('/api/status', methods=['GET'])
+        @require_auth
         def get_status():
             try:
                 return jsonify({
@@ -701,6 +784,7 @@ class UniversityFlaskAPI:
         
         # 获取对话历史
         @self.app.route('/api/conversation-history', methods=['GET'])
+        @require_auth
         def get_conversation_history():
             try:
                 if not self.service.agent:
@@ -717,6 +801,7 @@ class UniversityFlaskAPI:
 
         # 清空对话历史
         @self.app.route('/api/clear-conversation', methods=['POST'])
+        @require_auth
         def clear_conversation():
             try:
                 if not self.service.agent:
@@ -733,6 +818,7 @@ class UniversityFlaskAPI:
 
         # 重置状态
         @self.app.route('/api/reset', methods=['POST'])
+        @require_auth
         def reset_state():
             try:
                 self.service.reset_state()
@@ -758,7 +844,7 @@ class UniversityFlaskAPI:
         print(f"""
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
-║          🎓 大学AI教案生成系统 - Flask API                     ║
+║          🎓 EduAgent智教创想 - Flask API                     ║
 ║          University AI Lesson Planning System - Flask API     ║
 ║                                                               ║
 ║          基于 LangGraph + 通义千问                             ║

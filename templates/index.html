@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大学AI教案生成系统</title>
+    <title>EduAgent智教创想</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
 </head>
@@ -13,11 +13,40 @@
         <div class="navbar-left">
             <div class="logo">
                 <div class="logo-icon">🎓</div>
-                <div class="logo-text">AI教案助手</div>
+                <div class="logo-text">EduAgent智教创想</div>
             </div>
         </div>
         
         <div class="navbar-right">
+            <!-- 用户认证区域 -->
+            <div class="user-auth-area" id="userAuthArea">
+                <!-- 未登录状态 -->
+                <div class="auth-buttons" id="authButtons" style="display: none;">
+                    <a href="/login" class="auth-btn sign-in-btn">登录</a>
+                    <a href="/register" class="auth-btn sign-up-btn">注册</a>
+                </div>
+                
+                <!-- 已登录状态 -->
+                <div class="user-info" id="userInfo" style="display: none;">
+                    <div class="user-avatar">
+                        <span id="userAvatar">👤</span>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name" id="userName">用户名</span>
+                        <div class="user-menu" id="userMenu" style="display: none;">
+                            <a href="#" onclick="showUserProfile()">个人资料</a>
+                            <a href="#" onclick="showUserSettings()">设置</a>
+                            <a href="#" onclick="logout()">退出登录</a>
+                        </div>
+                    </div>
+                    <button class="nav-btn" onclick="toggleUserMenu()" title="用户菜单">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
             <button class="nav-btn" id="exportBtn" onclick="exportLessons()" title="导出教案" style="display: none;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -41,7 +70,7 @@
         <div class="welcome-screen" id="welcomeScreen">
             <div class="welcome-content">
                 <div class="welcome-icon">🎓</div>
-                <h1>大学AI教案生成系统</h1>
+                <h1>EduAgent智教创想</h1>
                 <p>基于通义千问的智能教育助手</p>
                 
                 <div class="welcome-features">
