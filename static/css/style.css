@@ -91,6 +91,7 @@ body {
 
 .logo-icon {
     font-size: 1.5rem;
+    transform: translateY(2px);
 }
 
 .logo-text {
@@ -179,6 +180,7 @@ body {
 .welcome-icon {
     font-size: 5rem;
     margin-bottom: var(--spacing-xl);
+    transform: translateY(50px);
 }
 
 .welcome-content h1 {
