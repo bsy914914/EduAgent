@@ -130,6 +130,118 @@ body {
     gap: var(--spacing-sm);
 }
 
+/* 用户认证区域样式 */
+.user-auth-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.auth-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.auth-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 80px;
+}
+
+.sign-in-btn {
+    background: transparent;
+    color: #333;
+    border-color: #e1e5e9;
+}
+
+.sign-in-btn:hover {
+    background: #f8f9fa;
+    border-color: #10a37f;
+    color: #10a37f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 163, 127, 0.2);
+}
+
+.sign-up-btn {
+    background: linear-gradient(135deg, #10a37f 0%, #0d8a6b 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.sign-up-btn:hover {
+    background: linear-gradient(135deg, #0d8a6b 0%, #0a6b56 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+}
+
+.user-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 150px;
+    padding: 8px 0;
+}
+
+.user-menu a {
+    display: block;
+    padding: 8px 16px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.user-menu a:hover {
+    background-color: #f8f9fa;
+}
+
 .nav-btn {
     padding: var(--spacing-sm);
     background-color: transparent;
@@ -285,6 +397,14 @@ body {
     justify-content: center;
     font-size: 1rem;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
 }
 
 .message.user .message-avatar {

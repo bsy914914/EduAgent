@@ -17,6 +17,12 @@ class TemplateEditorApp {
     
     async init() {
         console.log('📝 模板编辑器初始化...');
+        
+        // 检查认证状态
+        if (!await this.checkAuthStatus()) {
+            return; // 如果认证失败，会跳转到登录页面
+        }
+        
         await this.loadTags();
         this.setupDragDrop();
         
@@ -35,11 +41,92 @@ class TemplateEditorApp {
     }
     
     /**
+     * 检查认证状态
+     */
+    async checkAuthStatus() {
+        const authToken = localStorage.getItem('auth_token');
+        if (!authToken) {
+            this.redirectToLogin();
+            return false;
+        }
+        
+        try {
+            const response = await fetch('/api/auth/verify', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                this.redirectToLogin();
+                return false;
+            }
+            
+            const result = await response.json();
+            if (!result.success || !result.valid) {
+                this.redirectToLogin();
+                return false;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('认证检查失败:', error);
+            this.redirectToLogin();
+            return false;
+        }
+    }
+    
+    /**
+     * 跳转到登录页面
+     */
+    redirectToLogin() {
+        window.location.href = '/login';
+    }
+    
+    /**
+     * 发送API请求（自动添加认证头）
+     */
+    async apiRequest(url, options = {}) {
+        const authToken = localStorage.getItem('auth_token');
+        const defaultOptions = {
+            headers: {
+                'Content-Type': 'application/json',
+                ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+            }
+        };
+        
+        const mergedOptions = {
+            ...defaultOptions,
+            ...options,
+            headers: {
+                ...defaultOptions.headers,
+                ...options.headers
+            }
+        };
+        
+        try {
+            const response = await fetch(url, mergedOptions);
+            
+            // 如果返回401，说明认证失败，跳转到登录页面
+            if (response.status === 401) {
+                this.redirectToLogin();
+                throw new Error('认证失败，请重新登录');
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('API请求失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 加载可用标签
      */
     async loadTags() {
         try {
-            const response = await fetch('/api/template-editor/tags');
+            const response = await this.apiRequest('/api/template-editor/tags');
             const data = await response.json();
             
             if (data.success) {
@@ -93,11 +180,8 @@ class TemplateEditorApp {
             console.log('📤 开始加载文件:', filename, filepath);
             this.showLoading('正在加载您上传的模板...');
             
-            const response = await fetch('/api/template-editor/load-existing', {
+            const response = await this.apiRequest('/api/template-editor/load-existing', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     filename: filename,
                     filepath: filepath
@@ -148,9 +232,10 @@ class TemplateEditorApp {
         try {
             this.showLoading('正在上传和分析文档...');
             
-            const response = await fetch('/api/template-editor/upload', {
+            const response = await this.apiRequest('/api/template-editor/upload', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {} // 文件上传不需要Content-Type头
             });
             
             const data = await response.json();
@@ -236,7 +321,7 @@ class TemplateEditorApp {
         
         try {
             // 获取文档文件
-            const response = await fetch(`/api/template-editor/get-file/${this.sessionId}/${this.filename}`);
+            const response = await this.apiRequest(`/api/template-editor/get-file/${this.sessionId}/${this.filename}`);
             const blob = await response.blob();
             const arrayBuffer = await blob.arrayBuffer();
             
@@ -648,11 +733,8 @@ class TemplateEditorApp {
         try {
             this.showLoading('正在插入标签...');
             
-            const response = await fetch('/api/template-editor/insert-tag', {
+            const response = await this.apiRequest('/api/template-editor/insert-tag', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     session_id: this.sessionId,
                     filename: this.filename,

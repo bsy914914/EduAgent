@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隐私政策 - EduAgent智教创想</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+    <style>
+        .privacy-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .privacy-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .privacy-title {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .privacy-version {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .privacy-date {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .privacy-content {
+            line-height: 1.8;
+            color: #333;
+        }
+        
+        .privacy-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .section-subtitle {
+            color: #34495e;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+        }
+        
+        .privacy-list {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .privacy-list li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+        
+        .highlight {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+        
+        .info-box {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+            margin: 15px 0;
+        }
+        
+        .close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .close-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(108, 117, 125, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .back-btn:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+        }
+        
+        .contact-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            margin: 20px 0;
+        }
+        
+        .contact-info h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .contact-info p {
+            margin: 5px 0;
+            color: #555;
+        }
+        
+        .contact-info strong {
+            color: #2c3e50;
+        }
+        
+        @media (max-width: 768px) {
+            .privacy-container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            .privacy-title {
+                font-size: 24px;
+            }
+            
+            .section-title {
+                font-size: 18px;
+            }
+            
+            .close-btn, .back-btn {
+                position: relative;
+                top: auto;
+                right: auto;
+                left: auto;
+                margin: 10px 5px;
+                display: inline-block;
+            }
+        }
+    </style>
+</head>
+<body class="auth-body">
+    <button class="close-btn" onclick="closePrivacy()">关闭</button>
+    <button class="back-btn" onclick="goBack()">返回</button>
+    
+    <div class="privacy-container">
+        <div class="privacy-header">
+            <h1 class="privacy-title">EduAgent-教师协作智能体平台隐私政策</h1>
+            <div class="privacy-version">版本号：V2025.10</div>
+            <div class="privacy-date">生效日期：2025年10月16日</div>
+            <div class="privacy-date">依据法规：《中华人民共和国个人信息保护法》《中华人民共和国网络安全法》《中华人民共和国教育法》等</div>
+        </div>
+        
+        <div class="privacy-content">
+            <div class="privacy-section">
+                <h2 class="section-title">一、隐私政策适用范围</h2>
+                
+                <p>本政策适用于EduAgent-教师协作智能体平台（以下简称"平台"）对教师用户（含在职教师、教研人员等经身份核验的教育工作者）个人信息的采集、存储、使用、共享、删除等全部处理活动，涵盖平台网页端、移动端及相关附属服务。</p>
+            </div>
+            
+            <div class="privacy-section">
+                <h2 class="section-title">二、个人信息的采集与范围</h2>
+                
+                <p>平台遵循"最小必要"原则采集信息，仅收集为实现教学协作服务所必需的数据，具体分为三类：</p>
+                
+                <div class="section-subtitle">（一）身份核验信息</div>
+                <ul class="privacy-list">
+                    <li><strong>采集内容：</strong>教师姓名、教师资格证编号（脱敏存储）、工作单位名称、联系电话（脱敏展示）、电子邮箱。</li>
+                    <li><strong>采集方式：</strong>用户注册时主动提交、第三方身份核验机构合规同步。</li>
+                    <li><strong>采集目的：</strong>确认教育工作者身份，保障服务仅面向合规用户开放，满足教育服务资质审核要求。</li>
+                    <li><strong>脱敏规则：</strong>联系电话隐藏第4至第8位数字（如1385678）；教师资格证编号隐藏中间6位核心数字（如20231234）</li>
+                </ul>
+                
+                <div class="section-subtitle">（二）教学相关数据</div>
+                <ul class="privacy-list">
+                    <li><strong>采集内容：</strong>用户上传的学情记录（含学生学业数据脱敏摘要）、教学需求指令（如"生成初中数学一元二次方程教案"）、智能体功能使用偏好（如常用学段、学科标签）、对生成内容的修改记录。</li>
+                    <li><strong>采集方式：</strong>用户主动上传、平台在服务过程中自动记录。</li>
+                    <li><strong>采集目的：</strong>优化智能体个性化服务精度，生成贴合教师教学场景的辅助内容，提升教学协作效率。</li>
+                </ul>
+                
+                <div class="section-subtitle">（三）服务日志信息</div>
+                <ul class="privacy-list">
+                    <li><strong>采集内容：</strong>功能使用时间、访问IP地址、设备型号、浏览器类型、服务故障报错日志。</li>
+                    <li><strong>采集方式：</strong>平台系统自动采集。</li>
+                    <li><strong>采集目的：</strong>保障服务稳定性，排查功能故障，优化系统性能与用户体验，此类信息均做匿名化处理，不关联个人身份。</li>
+                </ul>
+            </div>
+            
+            <div class="privacy-section">
+                <h2 class="section-title">三、个人信息的使用规则</h2>
+                
+                <ol class="privacy-list">
+                    <li><strong>核心服务用途：</strong>将身份核验信息用于账号实名认证与权限管理；将教学相关数据用于智能体模型理解需求、生成教学辅助内容；将服务日志用于系统运维与体验优化。</li>
+                    <li><strong>合规拓展用途：</strong>在法律法规要求或教育政策调整时，用于配合监管部门的合规检查；经匿名化、去标识化处理后，用于教育教学数据分析（如学科需求热度统计），此类分析结果不涉及任何个人身份信息。</li>
+                    <li><strong>禁止性使用：</strong>不将用户个人信息用于广告推送、商业营销或与教学协作无关的其他用途；不利用AI技术滥用权限获取未授权的用户数据。</li>
+                </ol>
+            </div>
+            
+            <div class="privacy-section">
+                <h2 class="section-title">四、个人信息的存储与保护</h2>
+                
+                <div class="section-subtitle">（一）存储规范</div>
+                <ul class="privacy-list">
+                    <li><strong>存储期限：</strong>身份核验信息在账号存续期间留存，若账号注销且无法律法规要求留存的情形，15个工作日内彻底删除；教学相关数据在服务目的实现后（如教案生成完成且用户无后续编辑需求），保留30日供用户回溯，逾期自动匿名化处理；服务日志留存期限不超过6个月。</li>
+                    <li><strong>存储方式：</strong>采用加密云存储技术，对敏感数据进行全流程加密处理，存储系统符合国家信息安全等级保护三级及以上标准。</li>
+                </ul>
+                
+                <div class="section-subtitle">（二）安全保障措施</div>
+                <ol class="privacy-list">
+                    <li><strong>技术防护：</strong>实施数据传输加密（SSL/TLS协议）、存储加密（AES-256算法），部署入侵检测系统（IDS）与数据访问审计日志，所有数据操作均可追溯。</li>
+                    <li><strong>权限管控：</strong>采用分级访问控制机制，仅授权运维人员在合规范围内操作数据，且操作全程留痕，定期开展安全审计</li>
+                    <li><strong>应急响应：</strong>建立个人信息泄露应急预案，若发生数据泄露、篡改等安全事件，将立即启动应急处置，并在72小时内通过平台消息、短信等方式通知受影响用户，同时向监管部门报告。</li>
+                </ol>
+            </div>
+            
+            <div class="privacy-section">
+                <h2 class="section-title">五、个人信息的共享与转移</h2>
+                
+                <ol class="privacy-list">
+                    <li><strong>内部共享限制：</strong>平台内部仅允许负责技术运维、客服支持的必要岗位人员访问用户信息，且均签订保密协议，违者承担法律责任。</li>
+                    <li><strong>第三方共享规则：</strong>未经用户明确授权，绝不向任何第三方共享个人信息，以下情形除外：
+                        <ul style="margin-top: 10px; padding-left: 20px;">
+                            <li>依据法律法规或司法、行政机关的强制性要求；</li>
+                            <li>为保护用户或他人的生命、财产安全等紧急情况；</li>
+                            <li>与第三方服务提供商（如身份核验机构、云存储服务商）合作时，仅共享实现服务必需的最小范围数据，且要求第三方遵守同等安全保护标准并签订保密协议。</li>
+                        </ul>
+                    </li>
+                    <li><strong>公司变更转移：</strong>若平台发生合并、分立、收购等股权变更，用户个人信息将作为资产一并转移，转移前将通过平台公告通知用户，用户有权选择是否继续使用服务。</li>
+                </ol>
+            </div>
+            
+            <div class="privacy-section">
+                <h2 class="section-title">六、教师用户的信息权利</h2>
+                
+                <ol class="privacy-list">
+                    <li><strong>知情权：</strong>用户可在"个人中心-隐私设置"中随时查看个人信息的采集范围、使用记录及存储期限。</li>
+                    <li><strong>查询与更正权：</strong>可通过"个人中心-账号信息"查询、修改身份核验信息及教学数据，若发现信息不准确，可联系客服申请更正，平台将在3个工作日内响应处理。</li>
+                    <li><strong>删除与撤回授权权：</strong>在服务目的已实现、授权撤回或平台违反约定处理信息时，可申请删除个人信息；可随时在"隐私设置"中撤回非必要权限（如设备信息获取），撤回后不影响已提供服务的合法性，但可能导致部分功能无法正常使用</li>
+                    <li><strong>注销权：</strong>用户可在"账号安全"中申请注销账号，平台将在3个工作日内完成审核，注销后所有个人信息按本政策约定删除或匿名化处理，且不恢复。</li>
+                </ol>
+            </div>
+            
+            <div class="privacy-section">
+                <h2 class="section-title">七、政策的变更与通知</h2>
+                
+                <ol class="privacy-list">
+                    <li>平台有权根据法律法规更新或服务优化需要修订本政策，修订后将通过平台首页弹窗、账号消息推送等方式通知用户，且标注"更新日期"与"主要变更内容"。</li>
+                    <li>若政策修订涉及用户核心权益（如扩大信息采集范围、变更使用目的），将获得用户的明确同意后方可生效；用户继续使用服务即视为接受变更后的政策。</li>
+                </ol>
+            </div>
+            
+            <div class="privacy-section">
+                <h2 class="section-title">八、其他约定</h2>
+                
+                <ol class="privacy-list">
+                    <li>平台仅面向教育工作者提供服务，不采集未成年人个人信息，教师用户不得上传学生敏感信息（如身份证号、家庭住址等），确需使用学情数据时须进行脱敏处理。</li>
+                    <li>若用户对本政策有疑问或需行使信息权利，可通过以下方式联系客服：</li>
+                </ol>
+                
+                <div class="contact-info">
+                    <h4>📞 联系我们</h4>
+                    <p><strong>联系电话：</strong>17736097132（工作日9:00-18:00）</p>
+                    <p><strong>电子邮箱：</strong>Edu_Agent@163.com</p>
+                </div>
+                
+                <ol class="privacy-list" start="3">
+                    <li>因本政策引发的争议，双方优先协商解决；协商不成的，可向平台所在地有管辖权的人民法院提起诉讼。</li>
+                </ol>
+                
+                <div class="highlight">
+                    <p><strong>您注册并使用EduAgent平台服务，即视为已完整阅读、理解并接受本隐私政策的全部内容。</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function closePrivacy() {
+            // 如果是弹窗模式，关闭弹窗
+            if (window.opener) {
+                window.close();
+            } else {
+                // 否则返回上一页
+                history.back();
+            }
+        }
+        
+        function goBack() {
+            history.back();
+        }
+        
+        // 键盘事件处理
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePrivacy();
+            }
+        });
+    </script>
+</body>
+</html>

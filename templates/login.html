@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - EduAgent智教创想</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>🎓 EduAgent智教创想</h1>
+                <p>请登录您的账户</p>
+            </div>
+            
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="username">用户名或邮箱</label>
+                    <input type="text" id="username" name="username_or_email" required 
+                           placeholder="请输入用户名或邮箱">
+                    <div class="error-message" id="username-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="请输入密码">
+                    <div class="error-message" id="password-error"></div>
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="remember_me" name="remember_me">
+                        <span class="checkmark"></span>
+                        记住我
+                    </label>
+                </div>
+                
+                <button type="submit" class="auth-button" id="loginBtn">
+                    <span class="button-text">登录</span>
+                    <span class="button-loading" style="display: none;">登录中...</span>
+                </button>
+                
+                <div class="auth-links">
+                    <a href="/register" class="auth-link">还没有账户？立即注册</a>
+                    <span class="auth-link-separator">|</span>
+                    <a href="/forgot-password" class="auth-link">忘记密码？</a>
+                </div>
+            </form>
+        </div>
+        
+        <div class="auth-footer">
+            <p>&copy; 2025 EduAgent智教创想. 保留所有权利.</p>
+        </div>
+    </div>
+    
+    
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>

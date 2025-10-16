@@ -2,7 +2,7 @@
 
 ## 概述
 
-大学AI教案生成系统现在提供Flask RESTful API接口，支持完整的教案生成流程。
+EduAgent智教创想现在提供Flask RESTful API接口，支持完整的教案生成流程。
 
 ## 快速开始
 
@@ -46,7 +46,7 @@ curl http://localhost:5000/api/health
 ```json
 {
   "status": "healthy",
-  "message": "大学AI教案生成系统运行正常",
+  "message": "EduAgent智教创想运行正常",
   "version": "1.0.0"
 }
 ```

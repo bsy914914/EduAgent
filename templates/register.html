@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - EduAgent智教创想</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>🎓 EduAgent智教创想</h1>
+                <p>创建您的账户</p>
+            </div>
+            
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="username">用户名 *</label>
+                    <input type="text" id="username" name="username" required 
+                           placeholder="请输入用户名" minlength="3" maxlength="20">
+                    <div class="error-message" id="username-error"></div>
+                    <div class="field-hint">3-20个字符，支持字母、数字、下划线</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">邮箱 *</label>
+                    <div class="email-input-group">
+                        <input type="email" id="email" name="email" required 
+                               placeholder="请输入邮箱地址">
+                        <button type="button" id="sendCodeBtn" class="send-code-btn" disabled>
+                            <span class="btn-text">获取验证码</span>
+                            <span class="btn-loading" style="display: none;">发送中...</span>
+                        </button>
+                    </div>
+                    <div class="error-message" id="email-error"></div>
+                    <div class="field-hint">请先输入邮箱并获取验证码</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="verification_code">邮箱验证码 *</label>
+                    <input type="text" id="verification_code" name="verification_code" required 
+                           placeholder="请输入邮箱验证码" maxlength="6">
+                    <div class="error-message" id="verification_code-error"></div>
+                    <div class="verification-hint">
+                        <span id="codeTimer" style="display: none;">验证码已发送，<span id="countdown">60</span>秒后可重新发送</span>
+                        <a href="#" id="resendCodeLink" style="display: none;">重新发送验证码</a>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="full_name">真实姓名</label>
+                    <input type="text" id="full_name" name="full_name" 
+                           placeholder="请输入真实姓名（可选）">
+                    <div class="error-message" id="full_name-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码 *</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="请输入密码" minlength="8">
+                    <div class="error-message" id="password-error"></div>
+                    <div class="password-requirements">
+                        <div class="requirement" id="req-length">至少8位字符</div>
+                        <div class="requirement" id="req-uppercase">包含大写字母</div>
+                        <div class="requirement" id="req-lowercase">包含小写字母</div>
+                        <div class="requirement" id="req-number">包含数字</div>
+                        <div class="requirement" id="req-special">包含特殊字符</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">确认密码 *</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required 
+                           placeholder="请再次输入密码">
+                    <div class="error-message" id="confirm_password-error"></div>
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agree_terms" name="agree_terms" required>
+                        <span class="checkmark"></span>
+                        我同意 <a href="#" class="terms-link" onclick="openTermsModal()">服务条款</a> 和 <a href="#" class="terms-link" onclick="openPrivacyModal()">隐私政策</a>
+                    </label>
+                    <div class="error-message" id="agree_terms-error"></div>
+                </div>
+                
+                <button type="submit" class="auth-button" id="registerBtn">
+                    <span class="button-text">注册</span>
+                    <span class="button-loading" style="display: none;">注册中...</span>
+                </button>
+                
+                <div class="auth-links">
+                    <a href="/login" class="auth-link">已有账户？立即登录</a>
+                </div>
+            </form>
+        </div>
+        
+        <div class="auth-footer">
+            <p>&copy; 2025 EduAgent智教创想. 保留所有权利.</p>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>
+        // 服务条款弹窗功能
+        function openTermsModal() {
+            // 创建弹窗窗口
+            const modal = window.open(
+                '/terms-of-service',
+                'termsModal',
+                'width=1000,height=700,scrollbars=yes,resizable=yes,menubar=no,toolbar=no,location=no,status=no'
+            );
+            
+            // 确保弹窗获得焦点
+            if (modal) {
+                modal.focus();
+            }
+        }
+        
+        // 隐私政策弹窗功能
+        function openPrivacyModal() {
+            // 创建弹窗窗口
+            const modal = window.open(
+                '/privacy-policy',
+                'privacyModal',
+                'width=1000,height=700,scrollbars=yes,resizable=yes,menubar=no,toolbar=no,location=no,status=no'
+            );
+            
+            // 确保弹窗获得焦点
+            if (modal) {
+                modal.focus();
+            }
+        }
+        
+        // 阻止服务条款和隐私政策链接的默认行为
+        document.addEventListener('DOMContentLoaded', function() {
+            const termsLinks = document.querySelectorAll('.terms-link');
+            termsLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (this.textContent.includes('服务条款')) {
+                        openTermsModal();
+                    } else if (this.textContent.includes('隐私政策')) {
+                        openPrivacyModal();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

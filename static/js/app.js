@@ -1,5 +1,5 @@
 /**
- * 大学AI教案生成系统 - 前端JavaScript
+ * EduAgent智教创想 - 前端JavaScript
  * University AI Lesson Planning System - Frontend JavaScript
  */
 
@@ -10,6 +10,10 @@ class LessonPlanningApp {
         this.isInitialized = false;
         this.apiKey = localStorage.getItem('apiKey') || '';
         this.courseSettings = JSON.parse(localStorage.getItem('courseSettings') || '{}');
+        
+        // 用户认证状态
+        this.currentUser = null;
+        this.authToken = localStorage.getItem('auth_token');
         
         // 状态跟踪
         this.templateUploaded = false;
@@ -34,6 +38,7 @@ class LessonPlanningApp {
         this.setupFileUpload();
         this.setupChatInput();
         this.setupDragAndDrop();
+        this.initializeAuth();
     }
 
     setupEventListeners() {
@@ -189,19 +194,17 @@ class LessonPlanningApp {
     async apiCall(endpoint, method = 'GET', data = null, isFile = false) {
         const url = `${this.apiBaseUrl}${endpoint}`;
         const options = {
-            method,
-            headers: {}
+            method
         };
 
         if (data && !isFile) {
-            options.headers['Content-Type'] = 'application/json';
             options.body = JSON.stringify(data);
         } else if (data && isFile) {
             options.body = data;
         }
 
         try {
-            const response = await fetch(url, options);
+            const response = await this.apiRequest(url, options, isFile);
             const result = await response.json();
             
             if (!response.ok) {
@@ -218,6 +221,10 @@ class LessonPlanningApp {
     // 状态管理
     async checkApiStatus() {
         try {
+            // 如果没有认证token，跳过状态检查
+            if (!this.authToken) {
+                return null;
+            }
             const status = await this.apiCall('/status');
             return status.status;
         } catch (error) {
@@ -576,11 +583,8 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         try {
             this.showLoading('正在导出教案...');
             
-            const response = await fetch(`${this.apiBaseUrl}/export-lessons`, {
+            const response = await this.apiRequest(`${this.apiBaseUrl}/export-lessons`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ format, filename })
             });
 
@@ -773,7 +777,17 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         
         const avatar = document.createElement('div');
         avatar.className = 'message-avatar';
-        avatar.textContent = role === 'user' ? '👤' : '🤖';
+        
+        if (role === 'user') {
+            avatar.textContent = '👤';
+        } else {
+            // 机器人头像使用图片
+            const img = document.createElement('img');
+            img.src = '/static/images/111.png';
+            img.alt = 'AI助手';
+            img.className = 'avatar-image';
+            avatar.appendChild(img);
+        }
         
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
@@ -1019,7 +1033,12 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
     }
 
     // 模式管理
-    startChatMode() {
+    async startChatMode() {
+        // 检查认证状态
+        if (!(await this.checkAuthForFeature())) {
+            return;
+        }
+        
         if (this.modeLocked && this.currentMode !== 'chat') {
             this.showNotification('当前处于教案生成模式，请先完成教案生成或重置会话', 'warning');
             return;
@@ -1057,7 +1076,12 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         if (exportBtn) exportBtn.style.display = 'none';
     }
     
-    startLessonMode() {
+    async startLessonMode() {
+        // 检查认证状态
+        if (!(await this.checkAuthForFeature())) {
+            return;
+        }
+        
         if (this.modeLocked && this.currentMode !== 'lesson') {
             this.showNotification('当前处于智能对话模式，请先重置会话后选择教案生成模式', 'warning');
             return;
@@ -1159,7 +1183,9 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message';
         messageDiv.innerHTML = `
-            <div class="message-avatar">🤖</div>
+            <div class="message-avatar">
+                <img src="/static/images/111.png" alt="AI助手" class="avatar-image">
+            </div>
             <div class="message-content">
                 <div class="message-text">
                     <div style="margin-bottom: 20px;">
@@ -1281,6 +1307,258 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
             }, 2000);
         }
     }
+
+    // ==================== 通用API请求方法 ====================
+    
+    /**
+     * 发送API请求（自动添加认证头）
+     */
+    async apiRequest(url, options = {}, isFile = false) {
+        const defaultHeaders = {
+            ...(this.authToken && { 'Authorization': `Bearer ${this.authToken}` })
+        };
+        
+        // 如果是文件上传，不设置Content-Type，让浏览器自动设置
+        if (!isFile) {
+            defaultHeaders['Content-Type'] = 'application/json';
+        }
+        
+        const mergedOptions = {
+            ...options,
+            headers: {
+                ...defaultHeaders,
+                ...options.headers
+            }
+        };
+        
+        try {
+            const response = await fetch(url, mergedOptions);
+            
+            // 如果返回401，说明认证失败，跳转到登录页面
+            if (response.status === 401) {
+                this.redirectToLogin();
+                throw new Error('认证失败，请重新登录');
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('API请求失败:', error);
+            throw error;
+        }
+    }
+
+    // ==================== 用户认证相关方法 ====================
+    
+    /**
+     * 初始化用户认证
+     */
+    async initializeAuth() {
+        if (this.authToken) {
+            try {
+                await this.verifyToken();
+            } catch (error) {
+                console.error('Token验证失败:', error);
+                this.logout();
+            }
+        } else {
+            // 没有token，显示登录按钮，但不强制跳转
+            this.showAuthButtons();
+        }
+    }
+    
+    /**
+     * 验证token有效性
+     */
+    async verifyToken() {
+        try {
+            const response = await fetch('/api/auth/verify', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success && result.valid) {
+                this.currentUser = result.user;
+                this.showUserInfo();
+            } else {
+                throw new Error('Token无效');
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+    
+    /**
+     * 跳转到登录页面
+     */
+    redirectToLogin() {
+        window.location.href = '/login';
+    }
+    
+    /**
+     * 检查是否需要登录才能使用功能
+     */
+    async checkAuthForFeature() {
+        // 检查是否有有效的认证token
+        if (this.authToken) {
+            try {
+                await this.verifyToken();
+                return true; // 已登录且token有效
+            } catch (error) {
+                console.error('Token验证失败:', error);
+                this.logout();
+            }
+        }
+        
+        // 检查是否设置了"记住我"
+        const rememberMe = localStorage.getItem('remember_me') === 'true';
+        if (rememberMe && this.authToken) {
+            // 尝试重新验证token
+            try {
+                await this.verifyToken();
+                return true;
+            } catch (error) {
+                // 记住我的token已过期，清除并跳转登录
+                this.logout();
+            }
+        }
+        
+        // 需要登录
+        this.redirectToLogin();
+        return false;
+    }
+
+    /**
+     * 显示认证按钮
+     */
+    showAuthButtons() {
+        const authButtons = document.getElementById('authButtons');
+        const userInfo = document.getElementById('userInfo');
+        
+        if (authButtons) authButtons.style.display = 'flex';
+        if (userInfo) userInfo.style.display = 'none';
+    }
+    
+    /**
+     * 显示用户信息
+     */
+    showUserInfo() {
+        const authButtons = document.getElementById('authButtons');
+        const userInfo = document.getElementById('userInfo');
+        const userName = document.getElementById('userName');
+        const userAvatar = document.getElementById('userAvatar');
+        
+        if (authButtons) authButtons.style.display = 'none';
+        if (userInfo) userInfo.style.display = 'flex';
+        
+        if (this.currentUser) {
+            if (userName) userName.textContent = this.currentUser.username;
+            if (userAvatar) {
+                // 显示用户名首字母
+                const firstLetter = this.currentUser.username.charAt(0).toUpperCase();
+                userAvatar.textContent = firstLetter;
+            }
+        }
+    }
+    
+    /**
+     * 用户登录
+     */
+    async login(username, password, rememberMe = false) {
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username_or_email: username,
+                    password: password,
+                    remember_me: rememberMe
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.authToken = result.token;
+                this.currentUser = result.user;
+                localStorage.setItem('auth_token', result.token);
+                this.showUserInfo();
+                return { success: true, message: '登录成功' };
+            } else {
+                return { success: false, message: result.error };
+            }
+        } catch (error) {
+            return { success: false, message: '网络错误，请稍后重试' };
+        }
+    }
+    
+    /**
+     * 用户注册
+     */
+    async register(userData) {
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                return { success: true, message: '注册成功' };
+            } else {
+                return { success: false, message: result.error };
+            }
+        } catch (error) {
+            return { success: false, message: '网络错误，请稍后重试' };
+        }
+    }
+    
+    /**
+     * 用户登出
+     */
+    async logout() {
+        try {
+            if (this.authToken) {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.authToken}`
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('登出请求失败:', error);
+        } finally {
+            this.authToken = null;
+            this.currentUser = null;
+            localStorage.removeItem('auth_token');
+            this.showAuthButtons();
+        }
+    }
+    
+    /**
+     * 获取认证头
+     */
+    getAuthHeaders() {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (this.authToken) {
+            headers['Authorization'] = `Bearer ${this.authToken}`;
+        }
+        
+        return headers;
+    }
 }
 
 // 全局函数（供HTML调用）
@@ -1315,12 +1593,36 @@ function newChat() {
     app.newChat();
 }
 
-function startChatMode() {
-    app.startChatMode();
+async function startChatMode() {
+    await app.startChatMode();
 }
 
-function startLessonMode() {
-    app.startLessonMode();
+async function startLessonMode() {
+    await app.startLessonMode();
+}
+
+// 用户认证相关全局函数
+function toggleUserMenu() {
+    const userMenu = document.getElementById('userMenu');
+    if (userMenu) {
+        userMenu.style.display = userMenu.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function showUserProfile() {
+    // 显示用户资料模态框
+    alert('用户资料功能开发中...');
+}
+
+function showUserSettings() {
+    // 显示用户设置模态框
+    alert('用户设置功能开发中...');
+}
+
+function logout() {
+    if (app) {
+        app.logout();
+    }
 }
 
 // 页面加载完成后初始化应用
