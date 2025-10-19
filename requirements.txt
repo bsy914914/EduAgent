@@ -28,4 +28,3 @@ pyjwt>=2.8.0
 
 # 邮件发送相关依赖
 flask-mail>=0.9.1
-smtplib2>=0.2.1
