@@ -70,3 +70,8 @@ test*.py
 test*.html
 test_*.py
 
+# 模板标注生成的文件
+*_已标注.docx
+*_已标注_标注说明.txt
+教案模版*.docx
+
