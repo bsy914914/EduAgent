@@ -13,10 +13,11 @@ import os
 import sys
 import json
 import asyncio
+import time
 from pathlib import Path
 from typing import Dict, List, Optional
 from werkzeug.utils import secure_filename
-from flask import Flask, request, jsonify, send_file, render_template
+from flask import Flask, request, jsonify, send_file, render_template, Response
 from flask_cors import CORS
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
@@ -148,6 +149,11 @@ class UniversityFlaskAPI:
         @self.app.route('/template-editor')
         def template_editor():
             return render_template('template_editor_v2.html')
+        
+        # @高级生成页面
+        @self.app.route('/advanced-generation')
+        def advanced_generation_page():
+            return render_template('advanced_generation.html')
         
         # === 模板编辑API ===
         
@@ -762,6 +768,296 @@ class UniversityFlaskAPI:
                 import traceback
                 traceback.print_exc()
                 return jsonify({'error': f'导出失败: {str(e)}'}), 500
+        
+        # === @高级生成 API ===
+        
+        @self.app.route('/api/advanced-generate', methods=['POST'])
+        @require_auth
+        def advanced_generate():
+            """
+            @高级生成 - 使用AI自动填充教案模板
+            
+            请求体（multipart/form-data）:
+            - file: 上传的Word模板文件（.docx）
+            - topic: 教案主题
+            """
+            try:
+                from core.advanced_generator import AdvancedLessonGenerator
+                import shutil
+                
+                topic = request.form.get('topic', '').strip()
+                
+                if not topic:
+                    return jsonify({'error': '请提供教案主题'}), 400
+                
+                # 检查agent是否已初始化
+                if not self.service.agent:
+                    return jsonify({'error': '请先初始化AI代理'}), 400
+                
+                # 检查是使用默认模板还是上传文件
+                use_default_template = request.form.get('use_default_template', 'false') == 'true'
+                default_template_name = request.form.get('default_template_name', '')
+                
+                print(f"\n{'='*80}")
+                print(f"🚀 @高级生成 请求")
+                print(f"{'='*80}")
+                print(f"📚 主题: {topic}")
+                
+                import tempfile
+                temp_dir = tempfile.mkdtemp()
+                
+                if use_default_template and default_template_name:
+                    # 使用默认模板
+                    templates_dir = os.path.join(os.path.dirname(__file__), '..', 'templates_library')
+                    templates_dir = os.path.abspath(templates_dir)
+                    default_template_path = os.path.join(templates_dir, default_template_name)
+                    
+                    if not os.path.exists(default_template_path):
+                        return jsonify({'error': '默认模板不存在'}), 400
+                    
+                    # 复制默认模板到临时目录
+                    import shutil
+                    template_path = os.path.join(temp_dir, default_template_name)
+                    shutil.copy2(default_template_path, template_path)
+                    
+                    print(f"📄 使用默认模板: {default_template_name}")
+                    print(f"✅ 模板已复制到: {template_path}")
+                else:
+                    # 使用上传的文件
+                    if 'file' not in request.files:
+                        return jsonify({'error': '请上传模板文件或选择默认模板'}), 400
+                    
+                    file = request.files['file']
+                    
+                    if not file or file.filename == '':
+                        return jsonify({'error': '请选择模板文件'}), 400
+                    
+                    # 检查文件类型
+                    if not file.filename.endswith('.docx'):
+                        return jsonify({'error': '只支持.docx格式的Word文档'}), 400
+                    
+                    template_path = os.path.join(temp_dir, secure_filename(file.filename))
+                    file.save(template_path)
+                    
+                    print(f"📄 使用上传文件: {file.filename}")
+                    print(f"✅ 模板已保存到: {template_path}")
+                
+                print(f"{'='*80}\n")
+                
+                # 创建全局进度存储（如果不存在）
+                if not hasattr(self, 'generation_progress'):
+                    self.generation_progress = {}
+                
+                # 生成任务ID
+                import uuid
+                task_id = str(uuid.uuid4())
+                
+                # 初始化进度
+                self.generation_progress[task_id] = {
+                    'progress': 0,
+                    'status': 'starting',
+                    'current_step': '准备中...',
+                    'logs': [],
+                    'result': None,
+                    'error': None
+                }
+                
+                # 定义进度回调函数
+                def progress_callback(progress, status, message):
+                    if task_id in self.generation_progress:
+                        self.generation_progress[task_id]['progress'] = progress
+                        self.generation_progress[task_id]['status'] = status
+                        self.generation_progress[task_id]['current_step'] = message
+                        self.generation_progress[task_id]['logs'].append({
+                            'time': time.time(),
+                            'message': message
+                        })
+                        # 打印到控制台便于调试
+                        print(f"[{progress}%] {message}")
+                
+                # 定义后台生成任务
+                def run_generation_task():
+                    """在后台线程中运行生成任务"""
+                    try:
+                        print(f"🔄 后台任务开始: {task_id}")
+                        
+                        # 创建生成器（带进度回调）
+                        generator = AdvancedLessonGenerator(
+                            agent=self.service.agent,
+                            progress_callback=progress_callback
+                        )
+                        
+                        # 执行生成（同步包装异步调用）
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            success, result = loop.run_until_complete(
+                                generator.generate(topic, template_path)
+                            )
+                        finally:
+                            loop.close()
+                        
+                        # 清理临时文件
+                        try:
+                            shutil.rmtree(temp_dir)
+                            print(f"🧹 临时文件已清理")
+                        except:
+                            pass
+                        
+                        if success:
+                            # 更新进度状态
+                            if task_id in self.generation_progress:
+                                self.generation_progress[task_id]['result'] = result
+                                self.generation_progress[task_id]['status'] = 'completed'
+                            print(f"✅ 后台任务完成: {task_id}")
+                        else:
+                            # 更新进度状态
+                            if task_id in self.generation_progress:
+                                self.generation_progress[task_id]['error'] = result
+                                self.generation_progress[task_id]['status'] = 'failed'
+                            print(f"❌ 后台任务失败: {task_id}")
+                            
+                    except Exception as e:
+                        print(f"❌ 后台任务异常: {task_id} - {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        if task_id in self.generation_progress:
+                            self.generation_progress[task_id]['error'] = str(e)
+                            self.generation_progress[task_id]['status'] = 'failed'
+                
+                # 启动后台线程
+                import threading
+                thread = threading.Thread(target=run_generation_task, daemon=True)
+                thread.start()
+                
+                print(f"🚀 任务已启动（后台运行）: {task_id}")
+                
+                # 立即返回任务ID
+                return jsonify({
+                    'success': True,
+                    'message': '任务已启动',
+                    'task_id': task_id
+                })
+                    
+            except Exception as e:
+                print(f"❌ @高级生成 错误: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'error': f'生成失败: {str(e)}'}), 500
+        
+        # 获取默认模板列表
+        @self.app.route('/api/advanced-generate/templates', methods=['GET'])
+        def get_default_templates():
+            """获取默认模板列表"""
+            try:
+                templates_dir = os.path.join(os.path.dirname(__file__), '..', 'templates_library')
+                templates_dir = os.path.abspath(templates_dir)
+                
+                if not os.path.exists(templates_dir):
+                    return jsonify({'templates': []})
+                
+                templates = []
+                for filename in os.listdir(templates_dir):
+                    if filename.endswith('.docx') and not filename.startswith('~$'):
+                        file_path = os.path.join(templates_dir, filename)
+                        file_size = os.path.getsize(file_path)
+                        templates.append({
+                            'name': filename,
+                            'size': file_size,
+                            'path': filename  # 只存储文件名
+                        })
+                
+                return jsonify({'templates': templates})
+            except Exception as e:
+                print(f"❌ 获取模板列表错误: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
+        # 获取生成进度
+        @self.app.route('/api/advanced-generate/progress/<task_id>', methods=['GET'])
+        def get_generation_progress(task_id):
+            """获取生成进度"""
+            try:
+                if not hasattr(self, 'generation_progress'):
+                    print(f"⚠️ generation_progress 不存在")
+                    return jsonify({'error': '进度系统未初始化'}), 500
+                
+                if task_id not in self.generation_progress:
+                    print(f"⚠️ 任务ID不存在: {task_id}")
+                    print(f"   现有任务: {list(self.generation_progress.keys())}")
+                    return jsonify({'error': '任务不存在'}), 404
+                
+                progress_data = self.generation_progress[task_id]
+                # 打印调试信息（每5次请求打印一次，避免刷屏）
+                if not hasattr(self, '_progress_query_count'):
+                    self._progress_query_count = {}
+                self._progress_query_count[task_id] = self._progress_query_count.get(task_id, 0) + 1
+                if self._progress_query_count[task_id] % 5 == 1:
+                    print(f"📊 [查询 #{self._progress_query_count[task_id]}] 进度: {progress_data['progress']}%, 状态: {progress_data['status']}, 日志数: {len(progress_data['logs'])}")
+                
+                return jsonify(progress_data)
+            except Exception as e:
+                print(f"❌ 获取进度错误: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/advanced-generate/download/<path:filename>', methods=['GET'])
+        def download_advanced_generated(filename):
+            """下载高级生成的教案文件"""
+            try:
+                print(f"\n{'='*60}")
+                print(f"📥 下载请求")
+                print(f"{'='*60}")
+                print(f"请求的文件名: {filename}")
+                
+                # 安全检查：只允许文件名，不允许路径遍历
+                # 移除路径分隔符，但保留中文字符
+                safe_filename = os.path.basename(filename)
+                if '..' in safe_filename or '/' in safe_filename or '\\' in safe_filename:
+                    print(f"❌ 非法文件名（包含路径遍历）")
+                    return jsonify({'error': '非法文件名'}), 400
+                
+                print(f"安全文件名: {safe_filename}")
+                
+                # 构建文件路径
+                exports_dir = os.path.join(os.path.dirname(__file__), 'exports')
+                file_path = os.path.join(exports_dir, safe_filename)
+                
+                print(f"完整路径: {file_path}")
+                print(f"exports目录: {exports_dir}")
+                print(f"exports目录存在: {os.path.exists(exports_dir)}")
+                
+                # 列出exports目录中的所有文件
+                if os.path.exists(exports_dir):
+                    files = os.listdir(exports_dir)
+                    print(f"exports目录中的文件 ({len(files)}个):")
+                    for f in files[:10]:  # 只显示前10个
+                        print(f"  - {f}")
+                    if len(files) > 10:
+                        print(f"  ... 还有 {len(files)-10} 个文件")
+                
+                if not os.path.exists(file_path):
+                    print(f"❌ 文件不存在!")
+                    print(f"{'='*60}\n")
+                    return jsonify({'error': '文件不存在'}), 404
+                
+                print(f"✅ 文件存在，开始发送")
+                print(f"文件大小: {os.path.getsize(file_path)} 字节")
+                print(f"{'='*60}\n")
+                
+                return send_file(
+                    file_path,
+                    as_attachment=True,
+                    download_name=safe_filename,
+                    mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                )
+                
+            except Exception as e:
+                print(f"❌ 下载错误: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                print(f"{'='*60}\n")
+                return jsonify({'error': f'下载失败: {str(e)}'}), 500
         
         # 获取当前状态
         @self.app.route('/api/status', methods=['GET'])

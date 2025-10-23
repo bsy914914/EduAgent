@@ -56,6 +56,7 @@ config/settings.local.py
 *.bak
 .cache/
 
+
 # 文档临时文件
 vlm_response
 vlm_response.txt

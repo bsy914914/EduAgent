@@ -905,6 +905,115 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         });
         document.body.style.overflow = 'auto';
     }
+    
+    async showAdvancedGenerationModal() {
+        this.showModal('advancedGenerationModal');
+        // 加载默认模板列表
+        await this.loadDefaultTemplates();
+    }
+    
+    async loadDefaultTemplates() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/advanced-generate/templates`);
+            const data = await response.json();
+            
+            const listContainer = document.getElementById('defaultTemplateList');
+            
+            if (!data.templates || data.templates.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 1rem;">暂无默认模板</p>';
+                return;
+            }
+            
+            listContainer.innerHTML = data.templates.map((template, index) => `
+                <div class="template-item" data-template-name="${template.name}" onclick="selectDefaultTemplate('${template.name}')">
+                    <div class="template-item-info">
+                        <div class="template-item-icon">📄</div>
+                        <div class="template-item-details">
+                            <div class="template-item-name">${template.name}</div>
+                            <div class="template-item-size">${(template.size / 1024).toFixed(1)} KB</div>
+                        </div>
+                    </div>
+                    <div class="template-item-check" style="display: none; color: #10b981; font-size: 1.5rem;">✓</div>
+                </div>
+            `).join('');
+            
+            // 默认选中第一个模板
+            if (data.templates.length > 0) {
+                selectDefaultTemplate(data.templates[0].name);
+            }
+            
+        } catch (error) {
+            console.error('加载默认模板失败:', error);
+            document.getElementById('defaultTemplateList').innerHTML = 
+                '<p style="text-align: center; color: #ef4444; padding: 1rem;">加载失败</p>';
+        }
+    }
+    
+    async executeAdvancedGeneration() {
+        const topicInput = document.getElementById('advancedGenTopic');
+        const topic = topicInput.value.trim();
+        
+        // 验证输入
+        if (!topic) {
+            this.showNotification('请输入教案主题', 'warning');
+            return;
+        }
+        
+        // 检查是否已初始化
+        if (!this.isInitialized) {
+            this.showNotification('请先初始化AI代理', 'warning');
+            return;
+        }
+        
+        // 检查是使用默认模板还是上传文件
+        const currentTab = window.currentTemplateTab || 'default';
+        
+        if (currentTab === 'default') {
+            // 使用默认模板
+            const selectedTemplate = window.selectedDefaultTemplate;
+            if (!selectedTemplate) {
+                this.showNotification('请选择一个默认模板', 'warning');
+                return;
+            }
+            
+            // 存储模板选择信息
+            sessionStorage.setItem('advancedGenUseDefault', 'true');
+            sessionStorage.setItem('advancedGenDefaultTemplate', selectedTemplate);
+            
+            // 关闭模态框
+            this.closeModal('advancedGenerationModal');
+            
+            // 跳转到生成页面
+            window.location.href = `/advanced-generation?topic=${encodeURIComponent(topic)}&template=${encodeURIComponent(selectedTemplate)}&use_default=true`;
+            
+        } else {
+            // 使用上传的文件
+            const fileInput = document.getElementById('advancedGenTemplate');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                this.showNotification('请上传教案模板', 'warning');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                // 存储文件数据
+                sessionStorage.setItem('advancedGenFile', e.target.result);
+                sessionStorage.setItem('advancedGenFileName', file.name);
+                sessionStorage.setItem('advancedGenUseDefault', 'false');
+                
+                // 关闭模态框
+                this.closeModal('advancedGenerationModal');
+                
+                // 跳转到生成页面
+                window.location.href = `/advanced-generation?topic=${encodeURIComponent(topic)}&template=${encodeURIComponent(file.name)}`;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    }
 
     // UI控制
     showWelcomeScreen() {
@@ -1074,6 +1183,16 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
         if (fileUploadArea) fileUploadArea.style.display = 'none';
         const exportBtn = document.getElementById('exportBtn');
         if (exportBtn) exportBtn.style.display = 'none';
+    }
+    
+    async startAdvancedGeneration() {
+        // 检查认证状态
+        if (!(await this.checkAuthForFeature())) {
+            return;
+        }
+        
+        // 显示高级生成对话框
+        this.showAdvancedGenerationModal();
     }
     
     async startLessonMode() {
@@ -1600,6 +1719,46 @@ async function startChatMode() {
 async function startLessonMode() {
     await app.startLessonMode();
 }
+
+async function startAdvancedGeneration() {
+    await app.startAdvancedGeneration();
+}
+
+function handleAdvancedGenTemplateUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    // 验证文件类型
+    if (!file.name.endsWith('.docx')) {
+        app.showNotification('请上传.docx格式的Word文档', 'error');
+        input.value = '';
+        return;
+    }
+    
+    // 显示文件信息
+    const fileName = file.name;
+    const fileSize = (file.size / 1024).toFixed(1) + ' KB';
+    
+    document.getElementById('advancedGenFileName').textContent = fileName;
+    document.getElementById('advancedGenFileSize').textContent = fileSize;
+    document.getElementById('advancedGenFilePrompt').style.display = 'none';
+    document.getElementById('advancedGenFileInfo').style.display = 'block';
+    
+    // 改变上传区域样式
+    const fileArea = document.getElementById('advancedGenFileArea');
+    fileArea.style.borderColor = '#10b981';
+    fileArea.style.backgroundColor = '#f0fdf4';
+}
+
+// 点击文件上传区域触发文件选择
+document.addEventListener('DOMContentLoaded', function() {
+    const fileArea = document.getElementById('advancedGenFileArea');
+    if (fileArea) {
+        fileArea.addEventListener('click', function() {
+            document.getElementById('advancedGenTemplate').click();
+        });
+    }
+});
 
 // 用户认证相关全局函数
 function toggleUserMenu() {

@@ -1213,3 +1213,196 @@ body {
         height: 40px;
     }
 }
+/* ==================== @高级生成 样式 ==================== */
+
+.advanced-gen-intro {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.advanced-gen-intro p {
+    margin: 0.5rem 0;
+}
+
+.advanced-gen-intro ul {
+    margin: 0.75rem 0 0.75rem 1.5rem;
+    padding: 0;
+}
+
+.advanced-gen-intro li {
+    margin: 0.5rem 0;
+}
+
+.template-tab {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: #f3f4f6;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.template-tab:hover {
+    background: #e5e7eb;
+}
+
+.template-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+}
+
+.template-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.template-item:hover {
+    background: #f9fafb;
+    border-color: #667eea;
+}
+
+.template-item.selected {
+    background: #ede9fe;
+    border-color: #667eea;
+}
+
+.template-item-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.template-item-icon {
+    font-size: 1.5rem;
+}
+
+.template-item-details {
+    flex: 1;
+}
+
+.template-item-name {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.25rem;
+}
+
+.template-item-size {
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+.example-tag {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.example-tag:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* 教案生成选项卡片 */
+.generation-option-card {
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.generation-option-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+}
+
+.option-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.option-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.option-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.option-title h4 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #1f2937;
+}
+
+.option-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.option-description {
+    color: #6b7280;
+}
+
+.option-description p {
+    margin: 0 0 1rem 0;
+    font-size: 0.95rem;
+}
+
+.option-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.option-features li {
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.welcome-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
