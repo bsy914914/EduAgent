@@ -454,6 +454,17 @@
                 });
 
                 if (!response.ok) {
+                    // 如果是401未授权，提示登录
+                    if (response.status === 401) {
+                        const errorData = await response.json().catch(() => ({}));
+                        const errorMessage = errorData.error || '请先登录';
+                        addLog(`❌ 错误: ${errorMessage}`, 'error');
+                        addLog('🔐 正在跳转到登录页面...', 'info');
+                        setTimeout(() => {
+                            window.location.href = '/login';
+                        }, 2000);
+                        return;
+                    }
                     throw new Error(`HTTP ${response.status}`);
                 }
 
@@ -461,7 +472,17 @@
                 console.log('📦 服务器响应:', result);
                 
                 if (!result.success) {
-                    throw new Error(result.error || '启动生成失败');
+                    const errorMsg = result.error || '启动生成失败';
+                    // 如果是需要登录的错误，跳转到登录页面
+                    if (errorMsg.includes('请先登录') || errorMsg.includes('登录')) {
+                        addLog(`❌ 错误: ${errorMsg}`, 'error');
+                        addLog('🔐 正在跳转到登录页面...', 'info');
+                        setTimeout(() => {
+                            window.location.href = '/login';
+                        }, 2000);
+                        return;
+                    }
+                    throw new Error(errorMsg);
                 }
                 
                 const taskId = result.task_id;
