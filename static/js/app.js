@@ -959,6 +959,15 @@ ${outline.course_objectives ? Object.values(outline.course_objectives).flat().sl
             return;
         }
         
+        // 检查是否已登录
+        if (!this.currentUser || !this.authToken) {
+            this.showNotification('请先登录', 'warning');
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1500);
+            return;
+        }
+        
         // 检查是否已初始化
         if (!this.isInitialized) {
             this.showNotification('请先初始化AI代理', 'warning');
